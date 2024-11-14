@@ -11,9 +11,6 @@ import os
 # Add the src/osdag directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
-# Now try importing the module
-from osdag.design_type.connection.column_cover_plate import ColumnCoverPlate
-
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from ..design_report import reportGenerator
@@ -89,16 +86,9 @@ from ..design_type.connection.column_cover_plate_weld import ColumnCoverPlateWel
 from ..design_type.connection.base_plate_connection import BasePlateConnection
 from ..design_type.tension_member.tension_bolted import Tension_bolted
 from ..design_type.tension_member.tension_welded import Tension_welded
-from ..design_type.connection.beam_column_end_plate import BeamColumnEndPlate
-from ..design_type.compression_member.Column import ColumnDesign
-from ..design_type.flexural_member.flexure import Flexure
-from ..design_type.flexural_member.flexure_cantilever import Flexure_Cantilever
-from ..design_type.flexural_member.flexure_othersupp import Flexure_Misc
-from ..gusset_connection import GussetConnection
 import logging
 import subprocess
 from ..get_DPI_scale import scale
-from ..cad.cad3dconnection import cadconnection
 from OCC.Display.backend import load_backend, get_qt_modules
 from ..osdagMainSettings import backend_name
 used_backend = load_backend(backend_name())

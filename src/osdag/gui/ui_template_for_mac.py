@@ -27,16 +27,17 @@ from .ui_aboutosdag import Ui_AboutOsdag
 from .ui_ask_question import Ui_AskQuestion
 from ..texlive.Design_wrapper import init_display as init_display_off_screen
 
-from osdag.design_type.connection.column_cover_plate import ColumnCoverPlate
+from ..design_type.connection.column_cover_plate import ColumnCoverPlate
 # from PIL import Image
 
-from osdag.texlive.Design_wrapper import init_display as init_display_off_screen
+
+from ..texlive.Design_wrapper import init_display as init_display_off_screen
 # from OCC.Display.backend import off
 import os
 import yaml
 import json
 import logging
-from osdag.drawing_2D.Svg_Window import SvgWindow
+from ..drawing_2D.Svg_Window import SvgWindow
 import sys
 import sqlite3
 import shutil

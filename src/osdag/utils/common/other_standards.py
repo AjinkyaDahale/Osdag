@@ -14,12 +14,12 @@ Started on 15 - Nov - 2018
 """
 import sqlite3
 import math
+# FIXME: Keeping os and sys even if not used here. They are used in importing files without being explicitly imported themselves.
 import os
 import sys
-PATH_TO_DATABASE = os.path.join('ResourceFiles','Database','Intg_osdag.sqlite')
+from importlib.resources import files
 
-
-
+PATH_TO_DATABASE = files("osdag.data.ResourceFiles.Database").joinpath("Intg_osdag.sqlite")
 
 # IS 1363 - Part 1 : 2002
 class IS1363_part_1_2002(object):

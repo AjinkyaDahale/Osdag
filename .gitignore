@@ -9,8 +9,11 @@
 **/.idea/
 *~
 .vscode
-*.sqlite
-**/*.sqlite
+
+# commented
+# *.sqlite
+# **/*.sqlite
+
 *.log
 *.bak
 *.pdf

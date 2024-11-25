@@ -8,8 +8,8 @@ import ast
 import logging
 is_travis = 'TRAVIS' in os.environ
 ############################ Pre-Build Database Updation/Creation #################
-sqlpath = Path('ResourceFiles/Database/Intg_osdag.sql')
-sqlitepath = Path('ResourceFiles/Database/Intg_osdag.sqlite')
+sqlpath = files('osdag.data.ResourceFiles.Database').joinpath('Intg_osdag.sql')
+sqlitepath = files('osdag.data.ResourceFiles.Database').joinpath('Intg_osdag.sqlite')
 
 if sqlpath.exists():
     if not sqlitepath.exists():

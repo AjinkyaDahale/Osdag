@@ -8819,7 +8819,6 @@ def comp_column_class_section_check_required(h, bf, tf, axis):
     """
     bucklingclass_eq = Math(inline=True)
 
-    # Calculate buckling class
     calculated_buckling_class = calculate_buckling_class(h, bf, tf, axis)
 
     bucklingclass_eq=Math(inline=True)
@@ -8871,23 +8870,21 @@ def comp_column_class_section_check_provided(h, bf, tf, var_h_bf, axis):
     Returns:
         bucklingclass_eq: LaTeX formatted buckling class equation  (Math object)
     """
-
     bucklingclass_eq = Math(inline=True)
+    
     calculated_buckling_class = calculate_buckling_class(h, bf, tf, axis)
-
-
-    # Convert values to strings
+    
     h = str(h)
     bf = str(bf)
     tf = str(tf)
     var_h_bf = str(var_h_bf)
-
-    # Append the LaTeX formatted equations
-    bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}&= \frac{'+ h +r'}{' + bf + r'}\\'))
+    
+    bucklingclass_eq.append(NoEscape(r'\begin{aligned} \text{Buckling Class: }' + calculated_buckling_class + r'\\'))
+    bucklingclass_eq.append(NoEscape(r'\frac{h}{b_\text{f}}&= \frac{'+ h +r'}{' + bf + r'}\\'))
     bucklingclass_eq.append(NoEscape(r'                                  &='+ var_h_bf +r'\\'))
     bucklingclass_eq.append(NoEscape(r' t_f =' + tf + r' \\'))
     bucklingclass_eq.append(NoEscape(r'&[\text{Ref. IS\:800:2007,\:Cl.7.1.2.2}]\end{aligned}'))
-
+    
     return bucklingclass_eq
 
 
@@ -9096,29 +9093,3 @@ def flexure_section_check_required(bucklingclass , b , tf, d, tw ):
         bucklingclass_eq.append(NoEscape(r'                 \end(aligned)'))
     return bucklingclass_eq
 
-
-"""def comp_column_class_section_check_provided( bucklingclass , h , bf , tf , var_h_bf ):
-    """
-"""
-    Args:
-        h:Depth of section(mm)                                                                   (float)
-        bf: Breadth of section(mm)                                                               (float)
-        bucklingclass: buckling class                                                             (float)
-    Returns:
-            bucklingclass_eq
-    Note:
-        Reference: IS 800 Cl.7.1.2.2
-        @author:Rutvik Joshi """
-"""
-    bucklingclass_eq=Math(inline=True)
-    h=str(h)
-    bf=str(bf)
-    tf=str(tf)
-    var_h_bf=str(var_h_bf)
-
-    bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}&= frac{'+ h +r'}{' + bf + r'}\\'))
-    bucklingclass_eq.append(NoEscape(r'                                  &='+ var_h_bf +r'\\'))
-    bucklingclass_eq.append(NoEscape(r' t_f =' + tf + r' \\'))
-    bucklingclass_eq.append(NoEscape(r'&[\text{Ref. IS\:800:2007,\:Cl.7.1.2.2}]\end{aligned}'))
-    return bucklingclass_eq
-"""

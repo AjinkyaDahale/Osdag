@@ -2364,8 +2364,8 @@ class Tension_bolted(Member):
              KEY_DISP_YIELD_STRENGTH_REPORT: round(section_size.fy, 2),
 
              "Bolt Details - Input and Design Preference": "TITLE",
-             KEY_DISP_D: str(list(np.int_(self.bolt.bolt_diameter))),
-             KEY_DISP_GRD: str(self.bolt.bolt_grade),
+             KEY_DISP_D: str([int(d) for d in self.bolt.bolt_diameter]),
+             KEY_DISP_GRD: str([float(d) for d in self.bolt.bolt_grade]),
              KEY_DISP_TYP: self.bolt.bolt_type,
              KEY_DISP_DP_BOLT_HOLE_TYPE: self.bolt.bolt_hole_type,
              # KEY_DISP_DP_BOLT_FU: round(self.bolt.bolt_fu,2),

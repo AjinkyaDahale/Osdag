@@ -100,7 +100,7 @@ class CreateLatex(Document):
                     if type(uiObj[i]) == dict:
                         table.add_hline()
                         sectiondetails = uiObj[i]
-                        image_name = 'error'
+                        image_name = sectiondetails[KEY_DISP_SEC_PROFILE]
 
                         Img_path = str(pkg_images.joinpath(image_name + ".png")).replace("\\", "/")
                         if (len(sectiondetails))% 2 == 0:
@@ -259,7 +259,7 @@ class CreateLatex(Document):
                                 if type(uiObj[i]) == dict and i == 'Selected Section Details':
                                     table.add_hline()
                                     sectiondetails = uiObj[i]
-                                    image_name = 'error'
+                                    image_name = sectiondetails[KEY_DISP_SEC_PROFILE]
                                     Img_path = str(pkg_images.joinpath(image_name + ".png")).replace("\\", "/")
                                     if (len(sectiondetails)) % 2 == 0:
                                         # merge_rows = int(round_up(len(sectiondetails),2)/2 + 2)

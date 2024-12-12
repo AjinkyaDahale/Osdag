@@ -1430,7 +1430,7 @@ class ColumnDesign(Member):
              #KEY_DISP_SECSIZE: self.result_section_class,
              KEY_DISP_SECSIZE:  str(self.sec_list),
              KEY_DISP_ULTIMATE_STRENGTH_REPORT: self.euler_bs_yy,
-             KEY_DISP_YIELD_STRENGTH_REPORT: self.result_bc_yy,
+             KEY_DISP_YIELD_STRENGTH_REPORT: self.material_property.fy,
              KEY_DISP_EFFECTIVE_AREA_PARA: self.effective_area_factor, #To Check
 
 
@@ -1442,49 +1442,6 @@ class ColumnDesign(Member):
 
         self.h = (self.section_property.depth - 2 * (self.section_property.flange_thickness + self.section_property.root_radius))
         self.h_bf_ratio = self.h / self.section_property.flange_width
-
-        # Buckling Class Computation
-        #def calculate_buckling_class(h, bf, tf, axis):
-        """
-            Determines buckling class using IS 800:2007 checks.
-            axis: Can be "ZZ" or "YY"
-            
-            h_bf_ratio = h / bf
-            tf_limit = tf  # Apply limits to tf as needed by IS 800
-            if axis == "ZZ":
-                # Check based on h/bf limits
-                if h_bf_ratio <= 1.2 and tf_limit >= 100:
-                    return "D"
-                elif h_bf_ratio <= 1.2 and tf_limit < 100:
-                    return "B"
-                elif h_bf_ratio > 1.2 and tf_limit < 40:
-                    return "A"
-                elif h_bf_ratio > 1.2 and 40< tf_limit <100:
-                    return "B"
-                else:
-                    return "D"
-            elif axis == "YY":
-                # Check based on h/bf limits
-                if h_bf_ratio > 1.2 and tf_limit < 40:
-                    return "B"
-                elif h_bf_ratio > 1.2 and 40< tf_limit <100:
-                    return "C"
-                elif h_bf_ratio <= 1.2 and tf_limit >= 100:
-                    return "D"
-                elif h_bf_ratio <= 1.2 and tf_limit < 100:
-                    return "C"   
-                else:
-                    return "D"
-            else:
-                return "Invalid Axis"
-                """
-
-        # Calculate buckling classes based on ratios
-        #h_bf_ratio_zz = h / bf
-        #h_bf_ratio_yy = h / bf
-        #buckling_class_zz = calculate_buckling_class(self.h, self.section_property.flange_width, self.tf, "ZZ")
-        #buckling_class_yy = calculate_buckling_class(self.h, self.section_property.flange_width, self.tf, "YY")
-
 
 
         # 1.1 Input sections display
@@ -1499,17 +1456,17 @@ class ColumnDesign(Member):
         # YY axis row
         
         t1 = (
-            "h/bf Ratio vs tf for YY axis", 
+            "h/bf Ratio vs tf for YY Axis", 
             comp_column_class_section_check_required(self.h, self.section_property.flange_width, self.section_property.flange_thickness, "YY"),  
-            comp_column_class_section_check_provided(self.h, self.section_property.flange_width, self.section_property.flange_thickness, self.h_bf_ratio), 'Compatible'  
+            comp_column_class_section_check_provided(self.h, self.section_property.flange_width, self.section_property.flange_thickness, self.h_bf_ratio, "YY"), 'Compatible'  
         )
         self.report_check.append(t1)
 
         # ZZ axis row
         t1 = (
-            "h/bf Ratio vs tf for ZZ axis", 
+            "h/bf Ratio vs tf for ZZ Axis", 
             comp_column_class_section_check_required(self.h, self.section_property.flange_width, self.section_property.flange_thickness, "ZZ"), 
-            comp_column_class_section_check_provided(self.h, self.section_property.flange_width, self.section_property.flange_thickness, self.h_bf_ratio), 'Compatible'  
+            comp_column_class_section_check_provided(self.h, self.section_property.flange_width, self.section_property.flange_thickness, self.h_bf_ratio, "ZZ"), 'Compatible'  
         )
         self.report_check.append(t1)
 
@@ -1546,39 +1503,38 @@ class ColumnDesign(Member):
         self.report_check.append(t1)
         
 
-        from pylatex import Table, MultiColumn, MultiRow
-
-        t1 = ('SubSection', 'Imperfection Factor', '|p{4.5cm}|p{3cm}|p{6.5cm}|p{2cm}|')
-        self.report_check.append(t1)
-
-        t1 = ('Axes', 'Buckling Class', 'Imperfection Factor', '')
-        self.report_check.append(t1)
-
-        t1 = (
-            'Axes',
-            MultiRow(2, data='Buckling Class'),
-            MultiRow(2, data='Imperfection Factor'),
-            ''
-        )
+        t1 = ('NewTable', 'Imperfection Factor', '|p{3cm}|p{5 cm}|p{5cm}|p{3 cm}|')
         self.report_check.append(t1)
 
         t1 = (
             'YY',
-            self.list_yy[3],
-            self.list_yy[4],
-            ''
+            self.list_yy[3].upper(),
+            self.list_yy[4], ''
         )
         self.report_check.append(t1)
 
         t1 = (
             'ZZ',
-            self.list_zz[3],
-            self.list_zz[4],
-            ''
+            self.list_zz[3].upper(),
+            self.list_zz[4], ''
         )
         self.report_check.append(t1)
 
 
+
+
+        K_yy = self.result_eff_len_yy / self.length_yy
+        K_zz= self.result_eff_len_zz / self.length_zz
+        t1 = ('SubSection', 'Slenderness Ratio', '|p{4cm}|p{2 cm}|p{7cm}|p{3 cm}|')
+        self.report_check.append(t1)
+        t1 = ("Effective Slenderness Ratio (For YY Axis)", ' ',
+                            cl_7_1_2_effective_slenderness_ratio(K_yy,self.length_yy, self.section_property.rad_of_gy_y, round(self.result_eff_sr_yy, 2)),
+                            ' ')
+        self.report_check.append(t1)
+        t1 = ("Effective Slenderness Ratio (For ZZ Axis)", ' ',
+                            cl_7_1_2_effective_slenderness_ratio(K_zz,self.length_zz, self.section_property.rad_of_gy_z, round(self.result_eff_sr_zz, 2)),
+                            ' ')
+        self.report_check.append(t1)
 
 
 
@@ -1601,36 +1557,43 @@ class ColumnDesign(Member):
         #)  # if self.bc_compatibility_status is True else 'Not compatible')
         #self.report_check.append(t1)
 
-        # 2.4 CHECK : Member Check
-        t1 = ('SubSection', 'Member Check', '|p{4.5cm}|p{3cm}|p{6.5cm}|p{1.5cm}|')
+
+        t1 = ('SubSection', 'Checks', '|p{4cm}|p{2 cm}|p{7cm}|p{3 cm}|')
         self.report_check.append(t1)
-        t1 = (
-            "Slenderness",
-            cl_7_2_2_slenderness_required(self.KL, self.ry, self.lamba),
-            cl_7_2_2_slenderness_provided(self.KL, self.ry, self.lamba),
-            'PASS'
-        )
+                           
+        t1 = (r'$\phi_{yy}$', ' ',
+            cl_8_7_1_5_phi(self.result_IF_yy, round(self.result_eff_sr_yy, 2), round(self.result_phi_yy, 2)),
+            ' ')
         self.report_check.append(t1)
 
-        t1 = (
-            "Design Compressive stress (fcd)",
-            cl_7_1_2_1_fcd_check_required(self.gamma_mo, self.f_y, self.f_y_gamma_mo),
-            cl_7_1_2_1_fcd_check_provided(self.facd),
-            'PASS'
-        )
+        t1 = (r'$\phi_{zz}$', ' ',
+            cl_8_7_1_5_phi(self.result_IF_zz, round(self.result_eff_sr_zz, 2), round(self.result_phi_zz, 2)),
+            ' ')
         self.report_check.append(t1)
 
-        t1 = (
-            "Design Compressive strength (Pd)",
-            cl_7_1_2_design_comp_strength_required(self.axial),
-            cl_7_1_2_design_comp_strength_provided(self.Aeff, self.facd, self.A_eff_facd),
-            "PASS"
-        )
+        t1 = (r'$F_{cd,yy} \, \left( \frac{N}{\text{mm}^2} \right)$', ' ',
+            cl_8_7_1_5_Buckling(self.material_property.fy, self.gamma_m0, round(self.result_eff_sr_yy, 2), round(self.result_phi_yy, 2), round(self.result_fcd_2, 2), round(self.result_fcd_yy, 2)),
+            ' ')
         self.report_check.append(t1)
 
-        # Adding an empty row to finalize the table or for formatting purposes
-        t1 = ('', '', '', '')
+        t1 = (r'$F_{cd,zz} \, \left( \frac{N}{\text{mm}^2} \right)$', ' ',
+            cl_8_7_1_5_Buckling(self.material_property.fy, self.gamma_m0, round(self.result_eff_sr_zz, 2), round(self.result_phi_zz, 2), round(self.result_fcd_2, 2), round(self.result_fcd_zz, 2)),
+            ' ')
         self.report_check.append(t1)
+
+        #t1 = (
+        #    "Design Compressive strength (Pd)",
+        #    cl_7_1_2_design_comp_strength_required(self.axial),
+        #    cl_7_1_2_design_comp_strength_provided(self.Aeff, self.facd, self.A_eff_facd),
+        #    "PASS"
+        #)
+        #self.report_check.append(t1)
+
+        t1 = ( "Design Compressive strength (Pd) \\ (For the most critical value of Fcd)", self.load.axial_force * 10 ** -3,
+                      cl_7_1_2_design_compressive_strength(round(self.result_capacity / 1000, 2), self.section_property.area, round(self.result_fcd, 2),self.load.axial_force * 10 ** -3),
+                      get_pass_fail(self.load.axial_force * 10 ** -3, round(self.result_capacity, 2), relation="leq"))
+        self.report_check.append(t1)
+
 
         print(sys.path[0])
         rel_path = str(sys.path[0])
@@ -1641,6 +1604,3 @@ class ColumnDesign(Member):
                               rel_path, [], '', module=self.module) #
         
         
-
-
-

@@ -2379,7 +2379,7 @@ class Tension_bolted(Member):
              KEY_DISP_DP_DETAILING_CORROSIVE_INFLUENCES_BEAM: self.bolt.corrosive_influences,
 
              "Plate Details - Input and Design Preference": "TITLE",
-             KEY_DISP_PLATETHK: str(list(np.int_(self.plate.thickness))),
+             KEY_DISP_PLATETHK: str([int(d) for d in self.plate.thickness]),
              KEY_DISP_MATERIAL: self.plate.material,
              KEY_DISP_ULTIMATE_STRENGTH_REPORT: round(self.plate.fu, 2),
              KEY_DISP_YIELD_STRENGTH_REPORT: round(self.plate.fy, 2),

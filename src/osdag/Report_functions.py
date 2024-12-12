@@ -8778,63 +8778,119 @@ def prov_moment_load_bp(moment_input, min_mc, app_moment_load, moment_capacity, 
     return app_moment_load_eqn
 
 
-
-def comp_column_class_section_check_required( bucklingclass , h , bf ):
+def calculate_buckling_class(h, bf, tf, axis):
+    """
+    Determines the buckling class using IS 800:2007 checks.
+    axis: Can be "ZZ" or "YY"
+    """
+    h_bf_ratio = h / bf
+    tf_limit = tf  
+    
+    if axis == "ZZ":
+        if h_bf_ratio <= 1.2 and tf_limit > 100:
+            return "D"
+        elif h_bf_ratio <= 1.2 and tf_limit <= 100:
+            return "C"
+        elif h_bf_ratio > 1.2 and tf_limit <= 40:
+            return "B"
+        elif h_bf_ratio > 1.2 and 40 < tf_limit <= 100:
+            return "C"
+    
+    elif axis == "YY":
+        if h_bf_ratio > 1.2 and tf_limit <= 40:
+            return "A"
+        elif h_bf_ratio > 1.2 and 40 < tf_limit <= 100:
+            return "B"
+        elif h_bf_ratio <= 1.2 and tf_limit <= 100:
+            return "B"
+        elif h_bf_ratio <= 1.2 and tf_limit > 100:
+            return "D"   
+    else:
+        return "Invalid Axis"
+def comp_column_class_section_check_required(h, bf, tf, axis):
     """
     Args:
-        h:Depth of section(mm)                                                                   (float)
-        bf: Breadth of section(mm)                                                               (float)
-        bucklingclass: buckling class                                                             (float)
+        h: Depth of section (mm)                                    (float)
+        bf: Breadth of section (mm)                                  (float)
+        tf: Thickness of flange (mm)                                 (float)
+        axis: Axis for buckling class ("YY" or "ZZ")                  (str)
     Returns:
-            bucklingclass_eq
-    Note:
-        Reference: IS 800 Cl.7.1.2.2
-        @author:Rutvik Joshi
+        bucklingclass_eq: LaTeX formatted buckling class equation       (Math object)
     """
+    bucklingclass_eq = Math(inline=True)
+
+    # Calculate buckling class
+    calculated_buckling_class = calculate_buckling_class(h, bf, tf, axis)
+
     bucklingclass_eq=Math(inline=True)
-    if bucklingclass==0.34:
-        bucklingclass_eq.append(NoEscape(r'\begin{aligned} frac{h}{b_\text{f}}>1.2\\'))
+    if calculated_buckling_class=="A":
+        bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}>1.2\\'))
         bucklingclass_eq.append(NoEscape(r'                 t_\text{f}<=40\\'))
-        bucklingclass_eq.append(NoEscape(r'                 \end(aligned)'))
-    elif bucklingclass==0.49:
+        bucklingclass_eq.append(NoEscape(r'                 \end{aligned}'))
+    elif calculated_buckling_class=="B":
         if h/bf>1.2:
-            bucklingclass_eq.append(NoEscape(r'\begin{aligned} frac{h}{b_\text{f}}>1.2\\'))
-            bucklingclass_eq.append(NoEscape(r'40 <= t_\text{f} <= 100'))
-            bucklingclass_eq.append(NoEscape(r'                 \end(aligned)'))
+            if axis=="YY":
+                bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}>1.2\\'))
+                bucklingclass_eq.append(NoEscape(r'40 < t_\text{f} <= 100'))
+                bucklingclass_eq.append(NoEscape(r'                 \end{aligned}'))
+            else:
+                bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}>1.2\\'))
+                bucklingclass_eq.append(NoEscape(r'                 t_\text{f}<=40\\'))
+                bucklingclass_eq.append(NoEscape(r'                 \end{aligned}'))
         else:
-            bucklingclass_eq.append(NoEscape(r'\begin{aligned} frac{h}{b_\text{f}}<=1.2\\'))
+            bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}<=1.2\\'))
             bucklingclass_eq.append(NoEscape(r' t_\text{f} <= 100'))
-            bucklingclass_eq.append(NoEscape(r'                 \end(aligned)'))
-    elif bucklingclass==0.76:
-        bucklingclass_eq.append(NoEscape(r'\begin{aligned} frac{h}{b_\text{f}}<=1.2\\'))
-        bucklingclass_eq.append(NoEscape(r' t_\text{f} > 100'))
-        bucklingclass_eq.append(NoEscape(r'                 \end(aligned)'))
+            bucklingclass_eq.append(NoEscape(r'                 \end{aligned}'))
+    elif calculated_buckling_class=="C":
+        if h/bf>1.2:
+            bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}>1.2\\'))
+            bucklingclass_eq.append(NoEscape(r'40 < t_\text{f} <= 100'))
+            bucklingclass_eq.append(NoEscape(r'                 \end{aligned}'))
+        else:
+            bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}<=1.2\\'))
+            bucklingclass_eq.append(NoEscape(r' t_\text{f} <= 100'))
+            bucklingclass_eq.append(NoEscape(r'                 \end{aligned}'))
+    elif calculated_buckling_class=="D":
+        if axis=="YY":
+            bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}<=1.2\\'))
+            bucklingclass_eq.append(NoEscape(r' t_\text{f} > 100'))
+            bucklingclass_eq.append(NoEscape(r'                 \end{aligned}'))
+        else:
+            bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}<=1.2\\'))
+            bucklingclass_eq.append(NoEscape(r' t_\text{f} > 100'))
+            bucklingclass_eq.append(NoEscape(r'                 \end{aligned}'))
     return bucklingclass_eq
 
-
-def comp_column_class_section_check_provided( bucklingclass , h , bf , tf , var_h_bf ):
+def comp_column_class_section_check_provided(h, bf, tf, var_h_bf, axis):
     """
     Args:
-        h:Depth of section(mm)                                                                   (float)
-        bf: Breadth of section(mm)                                                               (float)
-        bucklingclass: buckling class                                                             (float)
+        h: Depth of section (mm)                                  (float)
+        bf: Breadth of section (mm)                                (float)
+        tf: Thickness of flange (mm)                               (float)
+        var_h_bf: Calculated h/bf ratio                            (float)
     Returns:
-            bucklingclass_eq
-    Note:
-        Reference: IS 800 Cl.7.1.2.2
-        @author:Rutvik Joshi
+        bucklingclass_eq: LaTeX formatted buckling class equation  (Math object)
     """
-    bucklingclass_eq=Math(inline=True)
-    h=str(h)
-    bf=str(bf)
-    tf=str(tf)
-    var_h_bf=str(var_h_bf)
 
-    bucklingclass_eq.append(NoEscape(r'\begin{aligned} frac{h}{b_\text{f}}&= frac{'+ h +r'}{' + bf + r'}\\'))
+    bucklingclass_eq = Math(inline=True)
+    calculated_buckling_class = calculate_buckling_class(h, bf, tf, axis)
+
+
+    # Convert values to strings
+    h = str(h)
+    bf = str(bf)
+    tf = str(tf)
+    var_h_bf = str(var_h_bf)
+
+    # Append the LaTeX formatted equations
+    bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}&= \frac{'+ h +r'}{' + bf + r'}\\'))
     bucklingclass_eq.append(NoEscape(r'                                  &='+ var_h_bf +r'\\'))
     bucklingclass_eq.append(NoEscape(r' t_f =' + tf + r' \\'))
     bucklingclass_eq.append(NoEscape(r'&[\text{Ref. IS\:800:2007,\:Cl.7.1.2.2}]\end{aligned}'))
+
     return bucklingclass_eq
+
+
 
 
 def cross_section_classification_required( section ):
@@ -9008,7 +9064,7 @@ def cl_7_1_2_design_comp_strength_provided( Aeff , facd , A_eff_facd ):
 # t_wc = round((1.9 * self.load_moment_effective * 1e6) / (self.column_D * self.beam_D * self.column_fy), 2)
 
 ##FLEXURE MEMBERS
-def flexure_section_check_required( section_class , b , tf, d, tw ):
+def flexure_section_check_required(bucklingclass , b , tf, d, tw ):
     """
     Args:
         h:Depth of section(mm)                                                                   (float)
@@ -9041,8 +9097,9 @@ def flexure_section_check_required( section_class , b , tf, d, tw ):
     return bucklingclass_eq
 
 
-def comp_column_class_section_check_provided( bucklingclass , h , bf , tf , var_h_bf ):
+"""def comp_column_class_section_check_provided( bucklingclass , h , bf , tf , var_h_bf ):
     """
+"""
     Args:
         h:Depth of section(mm)                                                                   (float)
         bf: Breadth of section(mm)                                                               (float)
@@ -9051,16 +9108,17 @@ def comp_column_class_section_check_provided( bucklingclass , h , bf , tf , var_
             bucklingclass_eq
     Note:
         Reference: IS 800 Cl.7.1.2.2
-        @author:Rutvik Joshi
-    """
+        @author:Rutvik Joshi """
+"""
     bucklingclass_eq=Math(inline=True)
     h=str(h)
     bf=str(bf)
     tf=str(tf)
     var_h_bf=str(var_h_bf)
 
-    bucklingclass_eq.append(NoEscape(r'\begin{aligned} frac{h}{b_\text{f}}&= frac{'+ h +r'}{' + bf + r'}\\'))
+    bucklingclass_eq.append(NoEscape(r'\begin{aligned} \frac{h}{b_\text{f}}&= frac{'+ h +r'}{' + bf + r'}\\'))
     bucklingclass_eq.append(NoEscape(r'                                  &='+ var_h_bf +r'\\'))
     bucklingclass_eq.append(NoEscape(r' t_f =' + tf + r' \\'))
     bucklingclass_eq.append(NoEscape(r'&[\text{Ref. IS\:800:2007,\:Cl.7.1.2.2}]\end{aligned}'))
     return bucklingclass_eq
+"""

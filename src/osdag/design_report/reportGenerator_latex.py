@@ -100,7 +100,7 @@ class CreateLatex(Document):
                     if type(uiObj[i]) == dict:
                         table.add_hline()
                         sectiondetails = uiObj[i]
-                        image_name = sectiondetails[KEY_DISP_SEC_PROFILE]
+                        image_name = 'error'
 
                         Img_path = str(pkg_images.joinpath(image_name + ".png")).replace("\\", "/")
                         if (len(sectiondetails))% 2 == 0:
@@ -232,6 +232,19 @@ class CreateLatex(Document):
                             table.end_table_header()
                             table.add_hline()
                             count = count + 1
+                elif check[0] == 'NewTable':
+                    if count >= 1:
+                        # doc.append(NewPage())
+                        doc.append(pyl.Command('Needspace', arguments=NoEscape(r'10\baselineskip')))
+
+                    with doc.create(Subsection(check[1])):  
+                        with doc.create(LongTable(check[2], row_height=1.2)) as table:
+                            table.add_hline()
+                            table.add_row(('Axes', 'Buckling Class', 'Imperfection Factor', ''), color='OsdagGreen')  
+                            table.add_hline()
+                            table.end_table_header()
+                            table.add_hline()
+                            count = count + 1
                 elif check[0] == "Selected":
                     if count >=1:
                         # doc.append(NewPage())
@@ -246,7 +259,7 @@ class CreateLatex(Document):
                                 if type(uiObj[i]) == dict and i == 'Selected Section Details':
                                     table.add_hline()
                                     sectiondetails = uiObj[i]
-                                    image_name = sectiondetails[KEY_DISP_SEC_PROFILE]
+                                    image_name = 'error'
                                     Img_path = str(pkg_images.joinpath(image_name + ".png")).replace("\\", "/")
                                     if (len(sectiondetails)) % 2 == 0:
                                         # merge_rows = int(round_up(len(sectiondetails),2)/2 + 2)

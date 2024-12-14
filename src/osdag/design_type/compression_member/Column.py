@@ -1298,37 +1298,6 @@ class ColumnDesign(Member):
         
         self.epsilon = 1
 
-
-        # Minimal fix to handle potential missing attributes
-        if not hasattr(self, 'connectivity'):
-            self.connectivity = 'Default'  # Default connectivity
-
-        
-        # Rest of the original method remains the same
-        if self.connectivity == 'Hollow/Tubular Column Base':
-            if self.dp_column_designation[1:4] == 'SHS':
-                select_section_img = 'SHS'
-            elif self.dp_column_designation[1:4] == 'RHS':
-                select_section_img = 'RHS'
-            else:
-                select_section_img = 'CHS'
-        else:
-            if self.section_property.flange_slope != 90:
-                select_section_img = "Slope_Beam"
-            else:
-                select_section_img = "Parallel_Beam"
-
-        # column section properties
-        if self.connectivity == 'Hollow/Tubular Column Base':
-            if self.dp_column_designation[1:4] == 'SHS':
-                section_type = 'Square Hollow Section (SHS)'
-            elif self.dp_column_designation[1:4] == 'RHS':
-                section_type = 'Rectangular Hollow Section (RHS)'
-            else:
-                section_type = 'Circular Hollow Section (CHS)'
-        else:
-            section_type = 'I Section'
-
         if self.sec_profile=='Columns' or self.sec_profile=='Beams' or self.sec_profile == VALUES_SEC_PROFILE[0]:
             self.report_column = {KEY_DISP_SEC_PROFILE: "ISection",
                                   KEY_DISP_SECSIZE: (self.section_property.designation, self.sec_profile),
@@ -1541,12 +1510,15 @@ class ColumnDesign(Member):
         self.report_check.append(t1)
 
 
+        Disp_2d_image = []
+        Disp_3D_image = "/ResourceFiles/images/3d.png"
+
         print(sys.path[0])
         rel_path = str(sys.path[0])
         rel_path = os.path.abspath(".") # TEMP
         rel_path = rel_path.replace("\\", "/")
         fname_no_ext = popup_summary['filename']
         CreateLatex.save_latex(CreateLatex(), self.report_input, self.report_check, popup_summary, fname_no_ext,
-                              rel_path, [], '', module=self.module) #
+                              rel_path, Disp_2d_image, Disp_3D_image, module=self.module) #
         
         

@@ -1298,55 +1298,6 @@ class ColumnDesign(Member):
         
         self.epsilon = 1
 
-        
-        if not hasattr(self, 'b1_tf'):
-            self.b1_tf = 0  # Default b1/tf ratio
-        
-        if not hasattr(self, 'd1_tw'):
-            self.d1_tw = 0  # Default d1/tw ratio
-        
-        if not hasattr(self, 'ep1'):
-            self.ep1 = 0  # Default ep1
-        
-        if not hasattr(self, 'ep2'):
-            self.ep2 = 0  # Default ep2
-        
-        if not hasattr(self, 'ep3'):
-            self.ep3 = 0  # Default ep3
-        
-        if not hasattr(self, 'ep4'):
-            self.ep4 = 0  # Default ep4
-        
-        # Slenderness and strength check attributes
-        if not hasattr(self, 'KL'):
-            self.KL = 0  # Default KL value
-        
-        if not hasattr(self, 'ry'):
-            self.ry = 0  # Default ry value
-        
-        if not hasattr(self, 'lamba'):
-            self.lamba = 0  # Default lambda value
-        
-        if not hasattr(self, 'gamma_mo'):
-            self.gamma_mo = 1.1  # Default gamma_mo value
-        
-        if not hasattr(self, 'f_y'):
-            self.f_y = 0  # Default yield strength
-        
-        if not hasattr(self, 'f_y_gamma_mo'):
-            self.f_y_gamma_mo = 0  # Default f_y/gamma_mo
-        
-        if not hasattr(self, 'facd'):
-            self.facd = 0  # Default design compressive stress
-        
-        if not hasattr(self, 'axial'):
-            self.axial = 0  # Default axial load
-        
-        if not hasattr(self, 'Aeff'):
-            self.Aeff = 0  # Default effective area
-        
-        if not hasattr(self, 'A_eff_facd'):
-            self.A_eff_facd = 0  # Default effective area * design compressive stress
 
         # Minimal fix to handle potential missing attributes
         if not hasattr(self, 'connectivity'):
@@ -1378,8 +1329,7 @@ class ColumnDesign(Member):
         else:
             section_type = 'I Section'
 
-
-        if self.section_property=='Columns' or self.section_property=='Beams':
+        if self.sec_profile=='Columns' or self.sec_profile=='Beams' or self.sec_profile == VALUES_SEC_PROFILE[0]:
             self.report_column = {KEY_DISP_SEC_PROFILE: "ISection",
                                   KEY_DISP_SECSIZE: (self.section_property.designation, self.sec_profile),
                                   KEY_DISP_COLSEC_REPORT: self.section_property.designation,
@@ -1418,24 +1368,22 @@ class ColumnDesign(Member):
         self.report_input = \
             {#KEY_MAIN_MODULE: self.mainmodule,
              KEY_MODULE: self.module, #"Axial load on column "
+                KEY_DISP_ACTUAL_LEN_ZZ: self.length_zz,
+                KEY_DISP_ACTUAL_LEN_YY: self.length_yy,
+                KEY_DISP_END1: self.end_1_z,
+                KEY_DISP_END2: self.end_2_z,
+                KEY_DISP_END1_Y: self.end_1_y,
+                KEY_DISP_END2_Y: self.end_2_y,
+                KEY_DISP_AXIAL: self.load.axial_force,
+                #KEY_DISP_SEC_PROFILE: self.sec_profile, 
+                #KEY_DISP_SECSIZE: self.result_section_class,
              KEY_MATERIAL: self.material,
-             KEY_DISP_ACTUAL_LEN_ZZ: self.length_zz,
-             KEY_DISP_ACTUAL_LEN_YY: self.length_yy,
-             KEY_DISP_END1: self.end_1_z,
-             KEY_DISP_END2: self.end_2_z,
-             KEY_DISP_END1_Y: self.end_1_y,
-             KEY_DISP_END2_Y: self.end_2_y,
-             KEY_DISP_AXIAL: self.load.axial_force,
-             KEY_DISP_SEC_PROFILE: self.sec_profile,
-             #KEY_DISP_SECSIZE: self.result_section_class,
-             KEY_DISP_SECSIZE:  str(self.sec_list),
-             KEY_DISP_ULTIMATE_STRENGTH_REPORT: self.euler_bs_yy,
-             KEY_DISP_YIELD_STRENGTH_REPORT: self.material_property.fy,
-             KEY_DISP_EFFECTIVE_AREA_PARA: self.effective_area_factor, #To Check
-
-
-             "Column Section - Mechanical Properties": "TITLE",
-             "Section Details": self.report_column,
+                KEY_DISP_ULTIMATE_STRENGTH_REPORT: self.euler_bs_yy,
+                KEY_DISP_YIELD_STRENGTH_REPORT: self.material_property.fy,
+                KEY_DISP_EFFECTIVE_AREA_PARA: self.effective_area_factor, #To Check
+                KEY_DISP_SECSIZE:  str(self.sec_list),
+                "Column Section - Mechanical Properties": "TITLE",
+                "Section Details": self.report_column,
              }
 
         self.report_check = []
@@ -1456,7 +1404,7 @@ class ColumnDesign(Member):
         # YY axis row
         
         t1 = (
-            "h/bf Ratio vs tf for YY Axis", 
+            "h/bf and tf for YY Axis", 
             comp_column_class_section_check_required(self.h, self.section_property.flange_width, self.section_property.flange_thickness, "YY"),  
             comp_column_class_section_check_provided(self.h, self.section_property.flange_width, self.section_property.flange_thickness, self.h_bf_ratio, "YY"), 'Compatible'  
         )
@@ -1464,7 +1412,7 @@ class ColumnDesign(Member):
 
         # ZZ axis row
         t1 = (
-            "h/bf Ratio vs tf for ZZ Axis", 
+            "h/bf and tf for ZZ Axis", 
             comp_column_class_section_check_required(self.h, self.section_property.flange_width, self.section_property.flange_thickness, "ZZ"), 
             comp_column_class_section_check_provided(self.h, self.section_property.flange_width, self.section_property.flange_thickness, self.h_bf_ratio, "ZZ"), 'Compatible'  
         )
@@ -1521,8 +1469,6 @@ class ColumnDesign(Member):
         self.report_check.append(t1)
 
 
-
-
         K_yy = self.result_eff_len_yy / self.length_yy
         K_zz= self.result_eff_len_zz / self.length_zz
         t1 = ('SubSection', 'Slenderness Ratio', '|p{4cm}|p{2 cm}|p{7cm}|p{3 cm}|')
@@ -1562,22 +1508,22 @@ class ColumnDesign(Member):
         self.report_check.append(t1)
                            
         t1 = (r'$\phi_{yy}$', ' ',
-            cl_8_7_1_5_phi(self.result_IF_yy, round(self.result_eff_sr_yy, 2), round(self.result_phi_yy, 2)),
+            cl_8_7_1_5_phi(self.result_IF_yy, round(self.non_dim_eff_sr_yy, 2), round(self.result_phi_yy, 2)),
             ' ')
         self.report_check.append(t1)
 
         t1 = (r'$\phi_{zz}$', ' ',
-            cl_8_7_1_5_phi(self.result_IF_zz, round(self.result_eff_sr_zz, 2), round(self.result_phi_zz, 2)),
+            cl_8_7_1_5_phi(self.result_IF_zz, round(self.non_dim_eff_sr_zz, 2), round(self.result_phi_zz, 2)),
             ' ')
         self.report_check.append(t1)
 
         t1 = (r'$F_{cd,yy} \, \left( \frac{N}{\text{mm}^2} \right)$', ' ',
-            cl_8_7_1_5_Buckling(self.material_property.fy, self.gamma_m0, round(self.result_eff_sr_yy, 2), round(self.result_phi_yy, 2), round(self.result_fcd_2, 2), round(self.result_fcd_yy, 2)),
+            cl_8_7_1_5_Buckling(self.material_property.fy, self.gamma_m0, round(self.non_dim_eff_sr_yy, 2), round(self.result_phi_yy, 2), round(self.result_fcd_2, 2), round(self.result_fcd_yy, 2)),
             ' ')
         self.report_check.append(t1)
 
         t1 = (r'$F_{cd,zz} \, \left( \frac{N}{\text{mm}^2} \right)$', ' ',
-            cl_8_7_1_5_Buckling(self.material_property.fy, self.gamma_m0, round(self.result_eff_sr_zz, 2), round(self.result_phi_zz, 2), round(self.result_fcd_2, 2), round(self.result_fcd_zz, 2)),
+            cl_8_7_1_5_Buckling(self.material_property.fy, self.gamma_m0, round(self.non_dim_eff_sr_zz, 2), round(self.result_phi_zz, 2), round(self.result_fcd_2, 2), round(self.result_fcd_zz, 2)),
             ' ')
         self.report_check.append(t1)
 

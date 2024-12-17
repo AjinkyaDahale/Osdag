@@ -128,6 +128,84 @@ def cl_3_7_2_section_classification_flange(d,t,result,epsilon,class_of_section=N
         eqn.append(NoEscape(r'\begin{aligned} & \textbf{Slender} \end{aligned}'))
     # eqn.append(NoEscape(r'& [\text{Ref: Table 2, Cl.3.7.2 and 3.7.4, IS 800:2007}] \end{aligned}'))
     return eqn
+
+
+def cl_3_7_2_section_classification_angle_required(ratio_type, class_of_section=None):
+    """
+    Provide the required conditions for angle section classification based on IS 800:2007, Cl.3.7.2.
+
+    Args:
+        ratio_type: Type of ratio to be calculated ('b/t', 'd/t', 'b+d/t')
+        class_of_section: Expected classification ('Plastic', 'Compact', 'Semi-Compact', 'Slender')
+        epsilon: Material constant (float)
+
+    Returns:
+        A LaTeX equation showing the required classification conditions.
+    """
+    eqn = Math(inline=True)
+
+    if class_of_section in ["Plastic", "Compact"]:
+        eqn.append(NoEscape(r'\begin{aligned} \text{For ' + class_of_section + r' Section:} \\'))
+        eqn.append(NoEscape(r'\text{No Specific Ratio Limit} \end{aligned}'))
+    
+    elif class_of_section == "Semi-Compact":
+        if ratio_type == 'b/t':
+            eqn.append(NoEscape(r'\begin{aligned} \\'))
+            eqn.append(NoEscape(r'\frac{b}{t} \leq 15.7\varepsilon'))
+            eqn.append(NoEscape(r'\end{aligned}'))
+        elif ratio_type == 'd/t':
+            eqn.append(NoEscape(r'\begin{aligned} \\'))
+            eqn.append(NoEscape(r'\frac{d}{t} \leq 15.7\varepsilon'))
+            eqn.append(NoEscape(r'\end{aligned}'))
+        elif ratio_type == '(b+d)/t':
+            eqn.append(NoEscape(r'\begin{aligned}  \\'))
+            eqn.append(NoEscape(r'\frac{b+d}{t} \leq 25\varepsilon'))
+            eqn.append(NoEscape(r'\end{aligned}'))
+    
+    else:
+        raise ValueError("Invalid section classification. Choose from 'Plastic', 'Compact', 'Semi-Compact'.")
+    
+    return eqn
+
+def cl_3_7_2_section_classification_angle_provided(b, d, t, ratio_value, ratio_type, epsilon, class_of_section=None):
+    """
+    Provide the numerical values for angle section classification based on IS 800:2007, Cl.3.7.2.
+
+    Args:
+        b: Width of the angle leg (float)
+        d: Depth of the angle (float)
+        t: Thickness of the leg (float)
+        ratio_type: Type of ratio to be calculated ('b/t', 'd/t', 'b+d/t')
+        ratio_value: The pre-calculated ratio value (float)
+        class_of_section: Expected classification ('Plastic', 'Compact', 'Semi-Compact', 'Slender')
+        epsilon: Material constant (float)
+
+    Returns:
+        A LaTeX equation showing the numerical values and classification.
+    """
+    eqn = Math(inline=True)
+
+    if ratio_type == 'b/t':
+        eqn.append(NoEscape(r'\begin{aligned}'))
+        eqn.append(NoEscape(r'\frac{b}{t} = \frac{' + str(b) + '}{' + str(t) + '} = ' + str(ratio_value) + r' \leq 15.7\varepsilon \\'))
+        eqn.append(NoEscape(r'& \textbf{' + class_of_section + r'} \end{aligned}'))
+    
+    elif ratio_type == 'd/t':
+        eqn.append(NoEscape(r'\begin{aligned}'))
+        eqn.append(NoEscape(r'\frac{d}{t} = \frac{' + str(d) + '}{' + str(t) + '} = ' + str(ratio_value) + r' \leq 15.7\varepsilon \\'))
+        eqn.append(NoEscape(r'& \textbf{' + class_of_section + r'} \end{aligned}'))
+    
+    elif ratio_type == '(b+d)/t':
+        eqn.append(NoEscape(r'\begin{aligned}'))
+        eqn.append(NoEscape(r'\frac{b+d}{t} = \frac{' + str(b+d) + '}{' + str(t) + '} = ' + str(ratio_value) + r' \leq 25\varepsilon \\'))
+        eqn.append(NoEscape(r'& \textbf{' + class_of_section + r'} \end{aligned}'))
+    
+    else:
+        raise ValueError("Invalid ratio type. Choose from 'b/t', 'd/t', '(b+d)/t'.")
+
+    return eqn
+
+
 def cl_5_4_1_table_4_5_gamma_value(v, t):
     """
     Calculate gamma value
@@ -446,6 +524,40 @@ def cl_7_1_2_effective_slenderness_ratio(K, L, r, slender):
     slender_eqn.append(NoEscape(r'\begin{aligned}\frac{K L}{r} &= \frac{' + K + r'\times' + L + '}{' + r + r'}\\'))
     slender_eqn.append(NoEscape(r'&= ' + slender + r'\\ \\'))
     slender_eqn.append(NoEscape(r'& [\text{Ref. IS 800:2007, Cl.7.1.2}] \end{aligned}'))
+    return slender_eqn
+
+def cl_7_5_1_2_effective_slenderness_ratio(k1, k2, k3, lmb_v, lmb_phi, slender):
+    """
+    Calculate effective slenderness ratio based on given parameters.
+
+    Args:
+        k1: Constant k1 (float)
+        k2: Constant k2 (float)
+        k3: Constant k3 (float)
+        lmb_v: Slenderness parameter λv (float)
+        lmb_phi: Slenderness parameter λϕ (float)
+        slender: Effective slenderness ratio λe (float)
+
+    Returns:
+        LaTeX representation of the effective slenderness ratio calculation.
+
+    Note:
+        Reference:
+        IS 800:2007, Cl.7.5.1.2
+    """
+    k1 = str(k1)
+    k2 = str(k2)
+    k3 = str(k3)
+    lmb_v = str(lmb_v)
+    lmb_phi = str(lmb_phi)
+    slender = str(slender)
+
+    slender_eqn = Math(inline=True)
+    slender_eqn.append(NoEscape(r'\begin{aligned} \lambda_e &= \sqrt{k_1 + k_2 \cdot \lambda_v^2 + k_3 \cdot \lambda_\phi^2} \\'))
+    slender_eqn.append(NoEscape(r'&= \sqrt{' + k1 + r' + ' + k2 + r' \cdot ' + lmb_v + r'^2 + ' + k3 + r' \cdot ' + lmb_phi + r'^2} \\'))
+    slender_eqn.append(NoEscape(r'&= ' + slender + r' \\ \\'))
+    slender_eqn.append(NoEscape(r'& [\text{Ref. IS 800:2007, Cl.7.5.1.2}] \end{aligned}'))
+
     return slender_eqn
 
 
@@ -1325,10 +1437,9 @@ def cl_8_7_1_5_buckling_curve(sub = 'c'):
 
     """
 
-    sub = str(sub)
+    sub = str(sub).upper()
     slender_eqn = Math(inline=True)
-    slender_eqn.append(NoEscape(r'\begin{aligned} &= c \\'))
-
+    slender_eqn.append(NoEscape(r'\begin{aligned} &= ' + sub + r' \\'))
     slender_eqn.append(NoEscape(r'& [\text{Ref. IS 800:2007, Cl.8.7.3.1}] \end{aligned}'))
     return slender_eqn
 
@@ -4066,7 +4177,7 @@ def lever_arm_end_plate(lever_arm, bolt_row, ep_type=''):
     return display_eqn
 
 
-def get_pass_fail(required, provided, relation='',M1 = '', M2 = ''):
+def get_pass_fail(required, provided, relation='',M1=''):
     if provided == 0 or required == 'N/A' or provided == 'N/A' or required == 0:
         return ''
     else:
@@ -8819,6 +8930,7 @@ def comp_column_class_section_check_required(h, bf, tf, axis):
     """
     bucklingclass_eq = Math(inline=True)
 
+    # Calculate buckling class
     calculated_buckling_class = calculate_buckling_class(h, bf, tf, axis)
 
     bucklingclass_eq=Math(inline=True)
@@ -8872,13 +8984,16 @@ def comp_column_class_section_check_provided(h, bf, tf, var_h_bf, axis):
     """
     bucklingclass_eq = Math(inline=True)
     
+    # Calculate buckling class first
     calculated_buckling_class = calculate_buckling_class(h, bf, tf, axis)
     
+    # Convert values to strings
     h = str(h)
     bf = str(bf)
     tf = str(tf)
     var_h_bf = str(var_h_bf)
     
+    # Append the LaTeX formatted equations including buckling class
     bucklingclass_eq.append(NoEscape(r'\begin{aligned} \text{Buckling Class: }' + calculated_buckling_class + r'\\'))
     bucklingclass_eq.append(NoEscape(r'\frac{h}{b_\text{f}}&= \frac{'+ h +r'}{' + bf + r'}\\'))
     bucklingclass_eq.append(NoEscape(r'                                  &='+ var_h_bf +r'\\'))
@@ -9060,7 +9175,7 @@ def cl_7_1_2_design_comp_strength_provided( Aeff , facd , A_eff_facd ):
 #     t_wc
 # t_wc = round((1.9 * self.load_moment_effective * 1e6) / (self.column_D * self.beam_D * self.column_fy), 2)
 
-##FLEXURE MEMBERS
+##FLEXURE MEMBERS (incomplete)
 def flexure_section_check_required(bucklingclass , b , tf, d, tw ):
     """
     Args:
@@ -9092,4 +9207,3 @@ def flexure_section_check_required(bucklingclass , b , tf, d, tw ):
         bucklingclass_eq.append(NoEscape(r' t_\text{f} > 100'))
         bucklingclass_eq.append(NoEscape(r'                 \end(aligned)'))
     return bucklingclass_eq
-

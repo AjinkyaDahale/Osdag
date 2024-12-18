@@ -1712,13 +1712,17 @@ class CommonDesignLogic(object):
         if 'RHS' in Col.result_designation or 'SHS' in Col.result_designation:  # hollow sections 'RHS and SHS'
             sec = RectHollow(L=float(Col.section_property.flange_width), W=float(Col.section_property.depth),
                              H=float(Col.length_zz), T=float(Col.section_property.flange_thickness))
+                             H=float(Col.length_zz), T=float(Col.section_property.flange_thickness))
             col = CompressionMemberCAD(sec)
+            sec=sec.create_model()
             sec=sec.create_model()
         elif 'CHS' in Col.result_designation:  # CHS
             sec = CircularHollow(r=float(Col.section_property.depth) / 2, T=float(Col.section_property.flange_thickness),
                                  H=float(Col.length_zz))
+                                 H=float(Col.length_zz))
             col = CompressionMemberCAD(sec)
             sec=sec.create_model()
+            
         else:  # Beams and Columns (rolled sections)
             column_tw = float(Col.section_property.web_thickness)
             column_T = float(Col.section_property.flange_thickness)
@@ -1728,11 +1732,11 @@ class CommonDesignLogic(object):
             column_R2 = float(Col.section_property.toe_radius)
             column_alpha = 94  # Todo: connect this. Waiting for danish to give variable
             column_length = float(Col.length_zz)
+            column_length = float(Col.length_zz)
 
             sec = ISection(B=column_B, T=column_T, D=column_d, t=column_tw, R1=column_R1, R2=column_R2,
                               alpha=column_alpha, length=column_length, notchObj=None)
             col = CompressionMemberCAD(sec)
-
             sec=sec.create_model()
 
         col.create_3DModel()
@@ -2056,6 +2060,12 @@ class CommonDesignLogic(object):
 
             if self.component == "Model":
                 osdag_display_shape(self.display, self.ColObj, update=True)
+        elif self.mainmodule == 'Struts in Trusses':
+            self.Strut = self.module_class()
+            #self.StrutObj = self.createColumnInFrameCAD()
+
+            # if self.component == "Model":
+            #     osdag_display_shape(self.display, self.ColObj, update=True)
 
         else:
             if self.connection == KEY_DISP_TENSION_BOLTED:
@@ -2217,6 +2227,14 @@ class CommonDesignLogic(object):
         elif self.mainmodule == 'Columns with known support conditions':
             if flag is True:
                 self.ColObj = self.createColumnInFrameCAD()
+
+                self.display_3DModel("Model", "gradient_bg")
+
+            else:
+                self.display.EraseAll()
+        elif self.mainmodule == 'Struts in Trusses':
+            if flag is True:
+                #self.StrutObj = self.createColumnInFrameCAD()
 
                 self.display_3DModel("Model", "gradient_bg")
 
@@ -2484,6 +2502,5 @@ class CommonDesignLogic(object):
 # if __name__!= "__main__":
 #
 #     CommonDesignLogic()
-
 
 

@@ -6,6 +6,7 @@ from ...utils.common.load import Load
 from ...utils.common.material import Material
 from ...utils.common.common_calculation import *
 from ...utils.common.is800_2007 import IS800_2007
+from importlib.resources import files
 
 
 class ShearConnection(Connection):
@@ -469,16 +470,16 @@ class ShearConnection(Connection):
             return []
 
     def fn_conn_image(self):
-
         conn = self[0]
         if conn == VALUES_CONN[0]:
-            return './ResourceFiles/images/fin_cf_bw.png'
+            return str(files("osdag.data.ResourceFiles.images").joinpath("fin_cf_bw.png"))
         elif conn == VALUES_CONN[1]:
-            return './ResourceFiles/images/fin_cw_bw.png'
+            return str(files("osdag.data.ResourceFiles.images").joinpath("fin_cw_bw.png"))
         elif conn in VALUES_CONN_2:
-            return './ResourceFiles/images/fin_beam_beam.png'
+            return str(files("osdag.data.ResourceFiles.images").joinpath("fin_beam_beam.png"))
         else:
             return ''
+
 
     def input_value_changed(self):
 

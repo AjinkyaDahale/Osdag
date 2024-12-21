@@ -1,88 +1,62 @@
-!include "LogicLib.nsh"
-
-# Define installer output name
-Outfile "OsdagInstaller.exe"
-
-# Installation directory
-InstallDir "$PROGRAMFILES\osdag"
-
-# Request admin privileges for the installer
+OutFile "osdag_installer.exe"
 RequestExecutionLevel admin
 
-# Variable to hold Miniconda installation directory
-Var MinicondaPath
+!include "nsDialogs.nsh"  
 
-# Function to find Miniconda installation path using the environment variable and registry
-Function FindMinicondaPath
-    # Check if Miniconda is in the system PATH using System::Call
-    System::Call 'kernel32::GetEnvironmentVariableA(t "Miniconda3", t .r0, i ${NSIS_MAX_STRLEN}) ?e'
-    StrCpy $MinicondaPath $0
-    ${If} $MinicondaPath == ""
-        MessageBox MB_OK "Miniconda not found in PATH. Checking registry..."
-        ReadRegStr $MinicondaPath HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Miniconda3" "InstallLocation"
-        ${If} $MinicondaPath == ""
-            ReadRegStr $MinicondaPath HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Miniconda3" "InstallLocation"
-        ${EndIf}
-    ${EndIf}
+Var condaPath
 
-    ${If} $MinicondaPath == ""
-        MessageBox MB_OK "Miniconda is not installed. Installing Miniconda..."
-        StrCpy $MinicondaPath "$INSTDIR\Miniconda3"
-        File "C:\Users\1hasa\Downloads\Miniconda3-latest-Windows-x86_64.exe"
-        ExecWait '"$INSTDIR\Miniconda3-latest-Windows-x86_64.exe" /InstallationType=JustMe /AddToPath=0 /RegisterPython=0 /S /D=$MinicondaPath' $0
-        ${If} $0 != "0"
-            MessageBox MB_OK "Failed to install Miniconda. Installation aborted."
+Section "Miniconda Installation"
+    SetOutPath "$TEMP"
+    File /oname=MinicondaInstaller.exe "c:\Users\1hasa\Downloads\Miniconda3-latest-Windows-x86_64.exe"
+
+    MessageBox MB_YESNO|MB_ICONQUESTION "Is Miniconda/Anaconda already installed on your system?" IDYES YesMiniconda IDNO NoMiniconda
+
+    YesMiniconda:
+        nsDialogs::Create
+        nsDialogs::SelectFolderDialog "Select the folder where Miniconda/Anaconda is installed" "" $condaPath
+        Pop $condaPath
+        ${If} $condaPath == ""
+            MessageBox MB_ICONEXCLAMATION "No directory selected. Installation will not continue."
             Abort
         ${EndIf}
-    ${EndIf}
-FunctionEnd
+        
+        Goto PathFound
 
-# Define installation steps
-Section "Install"
-    # Find Miniconda installation path (from PATH or registry)
-    Call FindMinicondaPath
+    NoMiniconda:
+        StrCpy $condaPath "%USERPROFILE%\Miniconda3"
+        DetailPrint "Installing Miniconda. It may take some time..."
+        ExecWait '"$TEMP\MinicondaInstaller.exe" /InstallationType=JustMe /AddToPath=1 /RegisterPython=0 /S /D=$condaPath'
+        
+        Goto PathFound
+        
+    PathFound:
+        DetailPrint "Miniconda Found at: $condaPath"
 
-    # Set the installation directory for OSdag
-    SetOutPath $INSTDIR
+   
+SectionEnd
 
-    # Bundle the batch file for launching OSdag
-    File "launch_osdag.bat"
 
-    # Ensure Conda is usable by setting up the environment
-    ExecWait '"$MinicondaPath\Scripts\conda.exe" init powershell' $0
-    ExecWait '"$MinicondaPath\Scripts\conda.exe" init cmd.exe' $0
+Section "install osdag"
 
-    # Add conda-forge channel and prioritize it
-    ExecWait '"$MinicondaPath\Scripts\conda.exe" config --add channels conda-forge' $0
-    ExecWait '"$MinicondaPath\Scripts\conda.exe" config --set channel_priority strict' $0
+    DetailPrint "Creating environment for osdag"
+    StrCpy $1 "$condaPath\Scripts\conda.exe"
+    ${If} ${FileExists} "$1"
+        Var /GLOBAL env_name
+        StrCpy $env_name "osdag_inst"  
 
-    # Create the Conda environment and install the package from ajinkyadahale channel
-    ExecWait '"$MinicondaPath\Scripts\conda.exe" create -y -n osdag -c ajinkyadahale osdag > $INSTDIR\installation.log' $0
-    ${If} $0 != "0"
-        MessageBox MB_OK "Failed to create Conda environment. Check installation.log for details."
+        DetailPrint "Creating Conda environment $env_name..."
+        nsExec::ExecToLog 'cmd.exe /C ""$1" create -y -n $env_name"'
+
+        DetailPrint "Installing osdag..."
+        nsExec::ExecToLog 'cmd.exe /C ""$1" install -n $env_name -y osdag::osdag"'
+        ; nsExec::ExecToLog 'cmd.exe /C ""$1" install -n myenv -y requests"'
+
+        ; Success message
+        MessageBox MB_OK "Conda environment $env_name successfully created and osdag installed."
+    ${Else}
+        ; Conda not found: Show error
+        MessageBox MB_ICONSTOP "Error: Conda executable not found at $1. Please check the path."
         Abort
     ${EndIf}
 
-    # Create a desktop shortcut for the batch file
-    CreateShortCut "$DESKTOP\Launch Osdag.lnk" "$INSTDIR\launch_osdag.bat"
-
-    # Write uninstaller executable
-    WriteUninstaller "$INSTDIR\Uninstall.exe"
-SectionEnd
-
-# Define uninstallation steps
-Section "Uninstall"
-    MessageBox MB_YESNO|MB_ICONQUESTION "Do you want to remove Miniconda as well?" IDNO SkipMinicondaRemoval
-        ; Safely remove Miniconda directory
-        RMDir /r "$MinicondaPath"
-        MessageBox MB_OK "Miniconda has been removed."
-    SkipMinicondaRemoval:
-        ; Continue with the rest of the uninstall or cleanup process
-
-    # Remove the batch script and shortcut
-    Delete "$INSTDIR\launch_osdag.bat"
-    Delete "$DESKTOP\Launch Osdag.lnk"
-
-    # Remove installation directory
-    RMDir /r $INSTDIR
 SectionEnd

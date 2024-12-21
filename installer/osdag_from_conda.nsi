@@ -23,7 +23,7 @@ Section "Miniconda Installation"
         Goto PathFound
 
     NoMiniconda:
-        StrCpy $condaPath "%USERPROFILE%\Miniconda3"
+        StrCpy $condaPath "$PROFILE\Miniconda3"
         DetailPrint "Installing Miniconda. It may take some time..."
         ExecWait '"$TEMP\MinicondaInstaller.exe" /InstallationType=JustMe /AddToPath=1 /RegisterPython=0 /S /D=$condaPath'
         
@@ -49,14 +49,47 @@ Section "install osdag"
 
         DetailPrint "Installing osdag..."
         nsExec::ExecToLog 'cmd.exe /C ""$1" install -n $env_name -y osdag::osdag"'
-        ; nsExec::ExecToLog 'cmd.exe /C ""$1" install -n myenv -y requests"'
-
-        ; Success message
         MessageBox MB_OK "Conda environment $env_name successfully created and osdag installed."
     ${Else}
-        ; Conda not found: Show error
+       
         MessageBox MB_ICONSTOP "Error: Conda executable not found at $1. Please check the path."
         Abort
     ${EndIf}
 
+SectionEnd
+
+Section "MiKTeX Installation"
+    SetOutPath "$TEMP"
+    File /oname=MiKTeXInstaller.exe "c:\Users\1hasa\Downloads\basic-miktex-24.1-x64.exe"
+
+    MessageBox MB_YESNO|MB_ICONQUESTION "Is MiKTeX already installed on your system?" IDYES YesMiKTeX IDNO NoMiKTeX
+
+    YesMiKTeX:
+        Goto MikTexInstalled
+
+    NoMiKTeX:
+        StrCpy $2 "$PROGRAMFILES64\MiKTeX"
+        DetailPrint "Installing MiKTeX. It may take some time..."
+        ExecWait '"$TEMP\MiKTeXInstaller.exe" /silent /S /D=$miktexPath'
+        
+        Goto MikTexInstalled
+
+    MikTexInstalled:
+        DetailPrint "MiKTeX Installed"
+        
+SectionEnd
+
+
+Section "Create Desktop and Start Menu Shortcuts"
+    Var /GLOBAL osdagShortcutPath
+    StrCpy $osdagShortcutPath "$DESKTOP\Osdag.lnk"
+
+    DetailPrint "Creating Desktop Shortcut for Osdag..."
+    CreateShortcut "$osdagShortcutPath" "$SYSDIR\cmd.exe" "/C call $condaPath\Scripts\activate.bat $env_name && osdag"
+
+    DetailPrint "Creating Start Menu Shortcut for Osdag..."
+    CreateDirectory "$SMPROGRAMS\Osdag"
+    CreateShortcut "$SMPROGRAMS\Osdag\Run Osdag.lnk" "$SYSDIR\cmd.exe" "/C call $condaPath\Scripts\activate.bat $env_name && osdag"
+
+    MessageBox MB_OK "Desktop and Start Menu shortcuts for Osdag have been created."
 SectionEnd

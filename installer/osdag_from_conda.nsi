@@ -1,9 +1,33 @@
 OutFile "osdag_installer.exe"
 RequestExecutionLevel admin
 
-!include "nsDialogs.nsh"  
+!include "MUI2.nsh"   ; Include Modern UI 2
+!include "nsDialogs.nsh"
 
+
+; Define installer information
+!define MUI_WELCOMEPAGE_TITLE "Welcome to the Osdag Installer Wizard" ; Title for the welcome page
+!define MUI_FINISHPAGE_TITLE "Thank You for Installing Osdag"        ; Title for the finish page
+!define MUI_ABORTWARNING                ; Warn the user if they attempt to abort the installation
+!define MUI_ICON "Osdag.ico"        ; Set installer icon (optional)
+!define MUI_HEADERIMAGE                 ; Enable header image
+!define MUI_HEADERIMAGE_BITMAP "Osdag_header.bmp" ; Header image file (optional)
+
+; Modern UI Pages
+!insertmacro MUI_PAGE_WELCOME           ; Welcome page
+!insertmacro MUI_PAGE_LICENSE "license.txt" ; License agreement page
+; !insertmacro MUI_PAGE_DIRECTORY         ; Installation directory selection page
+!insertmacro MUI_PAGE_INSTFILES         ; Installation progress page
+!insertmacro MUI_PAGE_FINISH            ; Finish page
+
+; Language selection
+!insertmacro MUI_LANGUAGE "English"
+
+
+Name "Osdag"
+BrandingText "Osdag Wizard"
 Var condaPath
+; Var miktexPath
 
 Section "Miniconda Installation"
     SetOutPath "$TEMP"
@@ -58,26 +82,32 @@ Section "install osdag"
 
 SectionEnd
 
-Section "MiKTeX Installation"
-    SetOutPath "$TEMP"
-    File /oname=MiKTeXInstaller.exe "c:\Users\1hasa\Downloads\basic-miktex-24.1-x64.exe"
+; Section "MiKTeX Installation"
+;     SetOutPath "$TEMP"
+;     File /oname=MiKTeXInstaller.exe "c:\Users\1hasa\Downloads\basic-miktex-24.1-x64.exe"
 
-    MessageBox MB_YESNO|MB_ICONQUESTION "Is MiKTeX already installed on your system?" IDYES YesMiKTeX IDNO NoMiKTeX
+;     MessageBox MB_YESNO|MB_ICONQUESTION "Is MiKTeX already installed on your system?" IDYES YesMiKTeX IDNO NoMiKTeX
 
-    YesMiKTeX:
-        Goto MikTexInstalled
+;     YesMiKTeX:
+;         nsExec::ExecToStack 'cmd.exe /C "where miktex-console.exe"'
+;         Pop $miktexPath
+;         ${If} $miktexPath == ""
+;             MessageBox MB_ICONSTOP "Error: MiKTeX console executable not found. Please verify the installation."
+;             Abort
+;         ${EndIf}
+;         Goto MikTexConfigured
 
-    NoMiKTeX:
-        StrCpy $2 "$PROGRAMFILES64\MiKTeX"
-        DetailPrint "Installing MiKTeX. It may take some time..."
-        ExecWait '"$TEMP\MiKTeXInstaller.exe" /silent /S /D=$miktexPath'
-        
-        Goto MikTexInstalled
+;     NoMiKTeX:
+;         StrCpy $miktexPath "$PROGRAMFILES64\MiKTeX"
+;         DetailPrint "Installing MiKTeX. It may take some time..."
+;         ExecWait '"$TEMP\MiKTeXInstaller.exe" /silent /S /D=$miktexPath'
+;         Goto MikTexConfigured
 
-    MikTexInstalled:
-        DetailPrint "MiKTeX Installed"
-        
-SectionEnd
+;     MikTexConfigured:
+;         DetailPrint "Configuring MiKTeX to handle package installations..."
+;         MessageBox MB_OK "MiKTeX successfully installed and configured for on-the-fly package installation."
+; SectionEnd
+
 
 
 Section "Create Desktop and Start Menu Shortcuts"

@@ -36,7 +36,7 @@ Section "Miniconda Installation"
     SetOutPath "$TEMP"
     
     ; Copy the Miniconda installer to the temporary directory
-    File /oname=MinicondaInstaller.exe "c:\Users\1hasa\Downloads\Miniconda3-latest-Windows-x86_64.exe"
+    File /oname=MinicondaInstaller.exe "C:\Users\1hasa\Downloads\Miniconda3-latest-Windows-x86_64.exe"
 
     ; Ask the user if Miniconda/Anaconda is already installed
     MessageBox MB_YESNO|MB_ICONQUESTION "Is Miniconda/Anaconda already installed on your system?" IDYES YesMiniconda IDNO NoMiniconda
@@ -59,7 +59,7 @@ Section "Miniconda Installation"
         ; Set the default installation path if Miniconda is not already installed
         StrCpy $condaPath "$PROFILE\Miniconda3"
         DetailPrint "Installing Miniconda. It may take some time..."
-        
+
         ; Perform a silent installation of Miniconda
         ExecWait '"$TEMP\MinicondaInstaller.exe" /InstallationType=JustMe /AddToPath=1 /RegisterPython=0 /S /D=$condaPath'
         
@@ -100,6 +100,52 @@ Section "install osdag"
 
 SectionEnd
 
+
+Section "LaTeX Installation"
+    ; Copy the MikTeX installer to the temporary directory
+    SetOutPath $TEMP
+    File /oname=MiKTeX.exe "C:\Users\1hasa\Downloads\basic-miktex-24.1-x64.exe"
+
+    ; Clear any existing errors
+    ClearErrors
+
+    ; Define a temporary file to store the output
+    SetOutPath $TEMP
+    FileOpen $1 "$TEMP\pdflatex_check.txt" w
+    FileClose $1
+
+    ; Run the "where pdflatex" command and redirect output to the file
+    ExecWait 'cmd.exe /C "where pdflatex > $TEMP\pdflatex_check.txt"'
+
+    ; Read the output from the file
+    FileOpen $1 "$TEMP\pdflatex_check.txt" r
+    FileRead $1 $0
+    FileClose $1
+
+    ; Check if the command failed or the output is empty
+    IfErrors 0 +3
+        Goto install 
+
+    ${If} $0 == ""
+        install:
+            MessageBox MB_ICONEXCLAMATION "MiKTeX not found (pdflatex is missing). Please install it before continuing."
+
+            ; Run the MiKTeX installer silently
+            DetailPrint "Installing MikTeX, please wait..."
+            ExecWait '"$TEMP\MiKTeX.exe"' $0
+            DetailPrint "MikTeX Installation completed. $0"
+            MessageBox MB_ICONEXCLAMATION "Make sure to check updates for MikTeX before launching Osdag"
+            Goto End
+
+    ${Else}
+        MessageBox MB_ICONINFORMATION "MiKTeX found at: $0"
+        Goto End
+    ${EndIf}
+
+End:
+SectionEnd
+
+
 ; Section to create shortcuts for Osdag
 Section "Create Desktop and Start Menu Shortcuts"
     ; Define the path for the desktop shortcut
@@ -123,3 +169,5 @@ Section "Create Desktop and Start Menu Shortcuts"
     ; Notify the user that the shortcuts have been created
     MessageBox MB_OK "Desktop and Start Menu shortcuts for Osdag have been created."
 SectionEnd
+
+

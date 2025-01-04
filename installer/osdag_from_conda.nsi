@@ -28,7 +28,8 @@ RequestExecutionLevel admin
 Name "Osdag"
 
 ; Declare variables for storing paths
-Var condaPath       
+Var condaPath  
+Var miktexPath     
 
 ; Section to handle Miniconda installation
 Section "Miniconda Installation"
@@ -49,27 +50,30 @@ Section "Miniconda Installation"
         ${If} $condaPath == ""
             ; Abort installation if no directory is selected
             MessageBox MB_ICONEXCLAMATION "No directory selected. Installation will not continue."
-            Abort
+            Quit
         ${EndIf}
         
-        ; Go to the section that verifies the installation path
+        ; Go to the section 
         Goto PathFound
 
     NoMiniconda:
-        ; Set the default installation path if Miniconda is not already installed
-        StrCpy $condaPath "$PROFILE\Miniconda3"
-        DetailPrint "Installing Miniconda. It may take some time..."
+        ; Create a dialog to let the user select the existing installation folder
+        nsDialogs::Create
+        nsDialogs::SelectFolderDialog "Select installational directory" "$PROFILE" $condaPath
+        Pop $condaPath
+        StrCpy $condaPath "$condaPath\Miniconda3"
+
+        DetailPrint "Installing Miniconda. It may take some time...,"
 
         ; Perform a silent installation of Miniconda
         ExecWait '"$TEMP\MinicondaInstaller.exe" /InstallationType=JustMe /AddToPath=1 /RegisterPython=0 /S /D=$condaPath'
         
-        ; Go to the section that verifies the installation path
+        ; Go to the section 
         Goto PathFound
         
     PathFound:
         ; Print the detected or installed Miniconda path
         DetailPrint "Miniconda Found at: $condaPath"
-
 SectionEnd
 
 ; Section to install Osdag using the Miniconda environment
@@ -84,30 +88,26 @@ Section "install osdag"
         StrCpy $env_name "osdag_env"  
 
         ; Create the Conda environment
-        DetailPrint "Creating Conda environment $env_name..."
         nsExec::ExecToLog 'cmd.exe /C ""$1" create -y -n $env_name"'
 
         ; Install Osdag in the created Conda environment
         DetailPrint "Installing osdag..."
         nsExec::ExecToLog 'cmd.exe /C ""$1" install -n $env_name -y osdag::osdag"'
-
-        MessageBox MB_OK "Conda environment $env_name successfully created and osdag installed."
     ${Else}
         ; Display an error message if Conda executable is not found
         MessageBox MB_ICONSTOP "Error: Conda executable not found at $1. Please check the path."
-        Abort
+        Quit
     ${EndIf}
 
 SectionEnd
 
-
 Section "LaTeX Installation"
+    ; Clear any existing errors
+    ClearErrors
+
     ; Copy the MikTeX installer to the temporary directory
     SetOutPath $TEMP
     File /oname=MiKTeX.exe "C:\Users\1hasa\Downloads\basic-miktex-24.1-x64.exe"
-
-    ; Clear any existing errors
-    ClearErrors
 
     ; Define a temporary file to store the output
     SetOutPath $TEMP
@@ -116,35 +116,51 @@ Section "LaTeX Installation"
 
     ; Run the "where pdflatex" command and redirect output to the file
     ExecWait 'cmd.exe /C "where pdflatex > $TEMP\pdflatex_check.txt"'
-
+ 
     ; Read the output from the file
     FileOpen $1 "$TEMP\pdflatex_check.txt" r
-    FileRead $1 $0
+    FileRead $1 $miktexPath
     FileClose $1
 
-    ; Check if the command failed or the output is empty
-    IfErrors 0 +3
-        Goto install 
 
-    ${If} $0 == ""
-        install:
-            MessageBox MB_ICONEXCLAMATION "MiKTeX not found (pdflatex is missing). Please install it before continuing."
-
-            ; Run the MiKTeX installer silently
-            DetailPrint "Installing MikTeX, please wait..."
-            ExecWait '"$TEMP\MiKTeX.exe"' $0
-            DetailPrint "MikTeX Installation completed. $0"
-            MessageBox MB_ICONEXCLAMATION "Make sure to check updates for MikTeX before launching Osdag"
-            Goto End
+    ${If} $miktexPath == ""
+        Goto install
 
     ${Else}
-        MessageBox MB_ICONINFORMATION "MiKTeX found at: $0"
+        ; Retrieve Latex installation directory
+        StrLen $R0 $miktexPath  ; Get the length of the full string
+
+        ; Find the position of "\condabin\conda.bat"
+        StrCpy $R1 "\miktex\bin\x64\pdflatex.exe"
+        StrLen $R2 $R1  ; Length of "\condabin\conda.bat"
+
+        ; Subtract 1 to avoid including the trailing backslash before condabin
+        IntOp $R3 $R0 - $R2
+        IntOp $R3 $R3 - 2  ; Subtract 1 more to exclude the last backslash before condabin
+
+        ; Copy everything before "\condabin\conda.bat"
+        StrCpy $miktexPath $miktexPath $R3
+
+        DetailPrint "LaTeX found at: $miktexPath"
         Goto End
     ${EndIf}
 
-End:
-SectionEnd
+    install:
+        MessageBox MB_ICONEXCLAMATION "LaTex not found (pdflatex is missing). Please install MikTeX before continuing."
 
+        ; Run the MiKTeX installer silently
+        DetailPrint "Installing MikTeX, please wait..."
+        MessageBox MB_ICONEXCLAMATION "Install for Current User. Do not change the default installation path for MikTeX."
+        ExecWait '"$TEMP\MiKTeX.exe"'
+
+        ; Run the "where pdflatex" command and redirect output to the file
+        StrCpy $miktexPath "$PROFILE\AppData\Local\Programs\MiKTeX\"
+        DetailPrint "MikTeX Installated at $miktexPath"
+        MessageBox MB_ICONEXCLAMATION "Make sure to check updates for MikTeX before launching Osdag"
+
+        Goto End
+    End:
+SectionEnd
 
 ; Section to create shortcuts for Osdag
 Section "Create Desktop and Start Menu Shortcuts"
@@ -154,9 +170,13 @@ Section "Create Desktop and Start Menu Shortcuts"
 
     ; Define the path for App icon
     Var /GLOBAL osdagIconPath 
-    StrCpy $osdagIconPath "$condaPath\envs\$env_name\Lib\site-packages\osdag\data\ResourceFiles\images\Osdag_App_icon.ico"
-    CopyFiles "Osdag_App_icon.ico" "$condaPath\envs\$env_name\Lib\site-packages\osdag\data\ResourceFiles\images"
 
+    SetOutPath $TEMP
+    File /oname=Osdag_App_icon.ico "C:\Users\1hasa\Osdag\installer\Osdag_App_icon.ico"
+
+    CopyFiles "$TEMP\Osdag_App_icon.ico" "$condaPath\envs\$env_name\Lib\site-packages\osdag\data\ResourceFiles\images"
+    StrCpy $osdagIconPath "$condaPath\envs\$env_name\Lib\site-packages\osdag\data\ResourceFiles\images\Osdag_App_icon.ico"
+    
     ; Create a desktop shortcut for Osdag
     DetailPrint "Creating Desktop Shortcut for Osdag..."
     CreateShortcut "$osdagShortcutPath" "$SYSDIR\cmd.exe" "/C call $condaPath\Scripts\activate.bat $env_name && osdag" "$osdagIconPath"
@@ -167,7 +187,8 @@ Section "Create Desktop and Start Menu Shortcuts"
     CreateShortcut "$SMPROGRAMS\Osdag\Run Osdag.lnk" "$SYSDIR\cmd.exe" "/C call $condaPath\Scripts\activate.bat $env_name && osdag" "$osdagIconPath"
 
     ; Notify the user that the shortcuts have been created
-    MessageBox MB_OK "Desktop and Start Menu shortcuts for Osdag have been created."
+    DetailPrint "Desktop and Start Menu shortcuts for Osdag have been created."
 SectionEnd
+
 
 

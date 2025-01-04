@@ -8,6 +8,7 @@
 **/*.pyc
 *.xml
 **/*.txt
+!installer/license.txt
 **/.idea/
 *~
 .vscode

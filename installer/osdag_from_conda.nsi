@@ -10,9 +10,10 @@ RequestExecutionLevel admin
 !define MUI_WELCOMEPAGE_TITLE "Welcome to the Osdag Installer Wizard" ; Title for the welcome page
 !define MUI_FINISHPAGE_TITLE "Thank You for Installing Osdag"        ; Title for the finish page
 !define MUI_ABORTWARNING                ; Display a warning if the user tries to abort installation
-!define MUI_ICON "Osdag.ico"            ; Set a custom installer icon (optional)
+!define MUI_ICON "Osdag.ico"            ; Set a custom installer icon 
+!define MUI_UNICON "Osdag.ico"          ; Set a custom uninstaller icon 
 !define MUI_HEADERIMAGE                 ; Enable a header image for the installer
-!define MUI_HEADERIMAGE_BITMAP "Osdag_header.bmp" ; Set the header image file (optional)
+!define MUI_HEADERIMAGE_BITMAP "Osdag_header.bmp" ; Set the header image file 
 
 ; Add Modern UI pages
 !insertmacro MUI_PAGE_WELCOME           ; Welcome page
@@ -28,8 +29,11 @@ RequestExecutionLevel admin
 Name "Osdag"
 
 ; Declare variables for storing paths
-Var condaPath  
-Var miktexPath     
+Var /GLOBAL condaPath  
+Var /GLOBAL miktexPath 
+Var /GLOBAL env_name   
+Var /GLOBAL osdagIconPath 
+Var /GLOBAL osdagShortcutPath
 
 ; Section to handle Miniconda installation
 Section "Miniconda Installation"
@@ -83,9 +87,8 @@ Section "install osdag"
     StrCpy $1 "$condaPath\Scripts\conda.exe" ; Path to the Conda executable
 
     ${If} ${FileExists} "$1"
-        ; Declare and assign a name for the Conda environment
-        Var /GLOBAL env_name
-        StrCpy $env_name "osdag_env"  
+        ; Assign a name for the Conda environment
+        StrCpy $env_name "osdag_env"   
 
         ; Create the Conda environment
         nsExec::ExecToLog 'cmd.exe /C ""$1" create -y -n $env_name"'
@@ -93,6 +96,7 @@ Section "install osdag"
         ; Install Osdag in the created Conda environment
         DetailPrint "Installing osdag..."
         nsExec::ExecToLog 'cmd.exe /C ""$1" install -n $env_name -y osdag::osdag"'
+
     ${Else}
         ; Display an error message if Conda executable is not found
         MessageBox MB_ICONSTOP "Error: Conda executable not found at $1. Please check the path."
@@ -121,7 +125,7 @@ Section "LaTeX Installation"
     FileOpen $1 "$TEMP\pdflatex_check.txt" r
     FileRead $1 $miktexPath
     FileClose $1
-
+    
 
     ${If} $miktexPath == ""
         Goto install
@@ -164,12 +168,8 @@ SectionEnd
 
 ; Section to create shortcuts for Osdag
 Section "Create Desktop and Start Menu Shortcuts"
-    ; Define the path for the desktop shortcut
-    Var /GLOBAL osdagShortcutPath
+    ; Path for the desktop shortcut
     StrCpy $osdagShortcutPath "$DESKTOP\Osdag.lnk"
-
-    ; Define the path for App icon
-    Var /GLOBAL osdagIconPath 
 
     SetOutPath $TEMP
     File /oname=Osdag_App_icon.ico "C:\Users\1hasa\Osdag\installer\Osdag_App_icon.ico"
@@ -184,24 +184,47 @@ Section "Create Desktop and Start Menu Shortcuts"
     ; Create a Start Menu shortcut for Osdag
     DetailPrint "Creating Start Menu Shortcut for Osdag..."
     CreateDirectory "$SMPROGRAMS\Osdag"
-    CreateShortcut "$SMPROGRAMS\Osdag\Run Osdag.lnk" "$SYSDIR\cmd.exe" "/C call $condaPath\Scripts\activate.bat $env_name && osdag" "$osdagIconPath"
+    CreateShortcut "$SMPROGRAMS\Osdag\Osdag.lnk" "$SYSDIR\cmd.exe" "/C call $condaPath\Scripts\activate.bat $env_name && osdag" "$osdagIconPath"
 
-    # Add to Control Panel
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "DisplayName" "Osdag"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "UninstallString" "$SMPROGRAMS\Osdag\Uninstall.exe"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "InstallLocation" "$condaPath\envs\$env_name"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "DisplayIcon" "$osdagIconPath"
+    ; Add uninstaller script
+    WriteUninstaller "$SMPROGRAMS\Osdag\Uninstall.exe"
+
+    # Add to Control Panel/Registry Keys
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "DisplayName" "Osdag"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "UninstallString" "$SMPROGRAMS\Osdag\Uninstall.exe"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "InstallLocation" "$condaPath\envs\$env_name"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "DisplayIcon" $osdagIconPath
 
     ; Need to be coonfirmed
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "Publisher" "Osdag"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "DisplayVersion" "1.0"
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "NoModify" 1
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "NoRepair" 1
-
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "Publisher" "Osdag"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "DisplayVersion" "1.0"
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "NoModify" 1
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "NoRepair" 1
 
     ; Notify the user that the shortcuts have been created
     DetailPrint "Desktop and Start Menu shortcuts for Osdag have been created."
 SectionEnd
 
 
+; Uninstaller Section
+Section "Uninstall"
 
+    ; remove osdag conda environment
+    Var /GLOBAL condaEnvPath
+    ReadRegStr $condaEnvPath HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "InstallLocation"
+    RMDir /r "$condaEnvPath"
+
+    ; remove app shortcuts
+    Delete "$DESKTOP\Osdag.lnk"
+    Delete "$SMPROGRAMS\Osdag\Osdag.lnk"
+
+    ; remove uninstaller
+    Delete "$SMPROGRAMS\Osdag\Uninstall.exe"
+    RMDir /r "$SMPROGRAMS\Osdag"
+
+    # Remove registry keys
+    DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag"
+
+    MessageBox MB_OK "Osdag Unistalled. You can remove MikTeX and Conda mannually" 
+
+SectionEnd

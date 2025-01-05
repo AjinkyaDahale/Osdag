@@ -186,6 +186,13 @@ Section "Create Desktop and Start Menu Shortcuts"
     CreateDirectory "$SMPROGRAMS\Osdag"
     CreateShortcut "$SMPROGRAMS\Osdag\Run Osdag.lnk" "$SYSDIR\cmd.exe" "/C call $condaPath\Scripts\activate.bat $env_name && osdag" "$osdagIconPath"
 
+    # Add to Control Panel
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "DisplayName" "Osdag"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "UninstallString" "$SMPROGRAMS\Osdag\Uninstall.exe"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "InstallLocation" "$condaPath\envs\$env_name"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "DisplayIcon" "$osdagIconPath"
+
+
     ; Notify the user that the shortcuts have been created
     DetailPrint "Desktop and Start Menu shortcuts for Osdag have been created."
 SectionEnd

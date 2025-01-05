@@ -192,6 +192,12 @@ Section "Create Desktop and Start Menu Shortcuts"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "InstallLocation" "$condaPath\envs\$env_name"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "DisplayIcon" "$osdagIconPath"
 
+    ; Need to be coonfirmed
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "Publisher" "Osdag"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "DisplayVersion" "1.0"
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "NoModify" 1
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag" "NoRepair" 1
+
 
     ; Notify the user that the shortcuts have been created
     DetailPrint "Desktop and Start Menu shortcuts for Osdag have been created."

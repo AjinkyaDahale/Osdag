@@ -1,13 +1,13 @@
 ; Define the output file name for the installer and set it to require admin privileges
 OutFile "osdag_installer.exe"
-RequestExecutionLevel admin
+RequestExecutionLevel user
 
 ; Include necessary libraries for Modern UI and dialogs
 !include "MUI2.nsh"   ; Include Modern UI 2 library for enhanced GUI
 !include "nsDialogs.nsh" ; Include dialogs library for custom dialogs
 
 ; Define installer information
-!define MUI_WELCOMEPAGE_TITLE "Welcome to the Osdag Installer Wizard" ; Title for the welcome page
+!define MUI_WELCOMEPAGE_TITLE "This Setup will guide you through the installation of Osdag  $\r$\n$\r$\nIt will also install some python dependencies that are required to run Osdag$\r$\n $\r$\nPLEASE UNINSTALL ANY EARLIER VERSION OF OSDAG on your system before going ahead (See README.txt for reference)$\r$\n $\r$\nPlease click Next only after uninstalling the earlier version" ; Title for the welcome page
 !define MUI_FINISHPAGE_TITLE "Thank You for Installing Osdag"        ; Title for the finish page
 !define MUI_ABORTWARNING                ; Display a warning if the user tries to abort installation
 !define MUI_ICON "Osdag.ico"            ; Set a custom installer icon 
@@ -18,7 +18,6 @@ RequestExecutionLevel admin
 ; Add Modern UI pages
 !insertmacro MUI_PAGE_WELCOME           ; Welcome page
 !insertmacro MUI_PAGE_LICENSE "license.txt" ; License agreement page
-; !insertmacro MUI_PAGE_DIRECTORY         ; Commented out directory selection page
 !insertmacro MUI_PAGE_INSTFILES         ; Installation progress page
 !insertmacro MUI_PAGE_FINISH            ; Finish page
 
@@ -41,7 +40,7 @@ Section "Miniconda Installation"
     SetOutPath "$TEMP"
     
     ; Copy the Miniconda installer to the temporary directory
-    File /oname=MinicondaInstaller.exe "C:\Users\1hasa\Downloads\Miniconda3-latest-Windows-x86_64.exe"
+    File /oname=MinicondaInstaller.exe "Miniconda3-latest-Windows-x86_64.exe"
 
     ; Ask the user if Miniconda/Anaconda is already installed
     MessageBox MB_YESNO|MB_ICONQUESTION "Is Miniconda/Anaconda already installed on your system?" IDYES YesMiniconda IDNO NoMiniconda
@@ -71,7 +70,10 @@ Section "Miniconda Installation"
 
         ; Perform a silent installation of Miniconda
         ExecWait '"$TEMP\MinicondaInstaller.exe" /InstallationType=JustMe /AddToPath=1 /RegisterPython=0 /S /D=$condaPath'
-        
+        ${If} ${Errors}
+            MessageBox MB_ICONSTOP "Error: Failed to install Miniconda. Please check the installer or your system permissions."
+            Quit
+        ${EndIf}
         ; Go to the section 
         Goto PathFound
         
@@ -90,12 +92,9 @@ Section "install osdag"
         ; Assign a name for the Conda environment
         StrCpy $env_name "osdag_env"   
 
-        ; Create the Conda environment
-        nsExec::ExecToLog 'cmd.exe /C ""$1" create -y -n $env_name"'
-
-        ; Install Osdag in the created Conda environment
+        ; Create Osdag env and install Osdag in the created Conda environment
         DetailPrint "Installing osdag..."
-        nsExec::ExecToLog 'cmd.exe /C ""$1" install -n $env_name -y osdag::osdag"'
+        nsExec::ExecToLog 'cmd.exe /C ""$1" create -n $env_name osdag::osdag -c conda-forge -y"'
 
     ${Else}
         ; Display an error message if Conda executable is not found
@@ -111,7 +110,7 @@ Section "LaTeX Installation"
 
     ; Copy the MikTeX installer to the temporary directory
     SetOutPath $TEMP
-    File /oname=MiKTeX.exe "C:\Users\1hasa\Downloads\basic-miktex-24.1-x64.exe"
+    File /oname=MiKTeX.exe "basic-miktex-24.1-x64.exe"
 
     ; Define a temporary file to store the output
     SetOutPath $TEMP
@@ -156,6 +155,10 @@ Section "LaTeX Installation"
         DetailPrint "Installing MikTeX, please wait..."
         MessageBox MB_ICONEXCLAMATION "Install for Current User. Do not change the default installation path for MikTeX."
         ExecWait '"$TEMP\MiKTeX.exe"'
+        ${If} ${Errors}
+            MessageBox MB_ICONSTOP "Error: Failed to install Miniconda. Please check the installer or your system permissions."
+            Quit
+        ${EndIf}
 
         ; Run the "where pdflatex" command and redirect output to the file
         StrCpy $miktexPath "$PROFILE\AppData\Local\Programs\MiKTeX\"
@@ -204,6 +207,36 @@ Section "Create Desktop and Start Menu Shortcuts"
     ; Notify the user that the shortcuts have been created
     DetailPrint "Desktop and Start Menu shortcuts for Osdag have been created."
 SectionEnd
+
+
+Section "Cleanup Temporary Files"
+    DetailPrint "Cleaning up temporary files..."
+    
+    ; Delete Miniconda installer
+    Delete "$TEMP\MinicondaInstaller.exe"
+    ${If} ${FileExists} "$TEMP\MinicondaInstaller.exe"
+        DetailPrint "Failed to delete MinicondaInstaller.exe"
+    ${Else}
+        DetailPrint "Deleted MinicondaInstaller.exe"
+    ${EndIf}
+
+    ; Delete MikTeX installer
+    Delete "$TEMP\MiKTeX.exe"
+    ${If} ${FileExists} "$TEMP\MiKTeX.exe"
+        DetailPrint "Failed to delete MiKTeX.exe"
+    ${Else}
+        DetailPrint "Deleted MiKTeX.exe"
+    ${EndIf}
+
+    ; Delete any other temporary files
+    Delete "$TEMP\pdflatex_check.txt"
+    Delete "$TEMP\Osdag_App_icon.ico"
+    
+
+
+    DetailPrint "Temporary files cleanup completed."
+SectionEnd
+
 
 
 ; Uninstaller Section

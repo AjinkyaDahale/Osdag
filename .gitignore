@@ -1,4 +1,6 @@
 **/*.log
+**/installer/**/*.exe
+**/installer/*.exe
 **/*.bak
 **/__pycache__/
 *.pyo
@@ -6,6 +8,7 @@
 **/*.pyc
 *.xml
 **/*.txt
+!installer/license.txt
 **/.idea/
 *~
 .vscode

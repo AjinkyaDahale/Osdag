@@ -34,21 +34,22 @@ Var /GLOBAL env_name
 Var /GLOBAL osdagIconPath 
 Var /GLOBAL osdagShortcutPath
 
+; Define custom messages
+!define MINICONDA_DIALOG_TITLE "Miniconda Installation"
+!define MINICONDA_DIALOG_TEXT "Do you already have Miniconda or Anaconda installed on your system?$\n$\nIf you're not sure, choose No and we'll install it for you."
+
 ; Section to handle Miniconda installation
 Section "Miniconda Installation"
-    ; Set the output path for temporary files
     SetOutPath "$TEMP"
-    
-    ; Copy the Miniconda installer to the temporary directory
     File /oname=MinicondaInstaller.exe "Miniconda3-latest-Windows-x86_64.exe"
 
-    ; Ask the user if Miniconda/Anaconda is already installed
-    MessageBox MB_YESNO|MB_ICONQUESTION "Is Miniconda/Anaconda already installed on your system?" IDYES YesMiniconda IDNO NoMiniconda
+    ; Modern styled message box with clear instructions
+    MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "${MINICONDA_DIALOG_TEXT}" IDYES YesMiniconda IDNO NoMiniconda
 
     YesMiniconda:
         ; Create a dialog to let the user select the existing installation folder
         nsDialogs::Create
-        nsDialogs::SelectFolderDialog "Select the folder where Miniconda/Anaconda is installed" "" $condaPath
+        nsDialogs::SelectFolderDialog "Select the folder where Miniconda/Anaconda is installed$\n$\nTypically C:\Users\<username>\miniconda3" "" $condaPath
         Pop $condaPath
         ${If} $condaPath == ""
             ; Abort installation if no directory is selected

@@ -18,6 +18,15 @@ RequestExecutionLevel user
 ; Add Modern UI pages
 !insertmacro MUI_PAGE_WELCOME           ; Welcome page
 !insertmacro MUI_PAGE_LICENSE "license.txt" ; License agreement page
+
+; Define custom messages for directory page
+!define MUI_DIRECTORYPAGE_TEXT_TOP "Select Miniconda Installation Directory"
+!define MUI_DIRECTORYPAGE_TEXT_DESTINATION "Choose the folder where Miniconda is/will be installed:"
+
+; Add directory selection page before installation files page
+!define MUI_PAGE_CUSTOMFUNCTION_PRE DirectoryPagePre
+!insertmacro MUI_PAGE_DIRECTORY
+
 !insertmacro MUI_PAGE_INSTFILES         ; Installation progress page
 !insertmacro MUI_PAGE_FINISH            ; Finish page
 
@@ -33,54 +42,50 @@ Var /GLOBAL miktexPath
 Var /GLOBAL env_name   
 Var /GLOBAL osdagIconPath 
 Var /GLOBAL osdagShortcutPath
+; Custom variables for directory selection
+Var CONDA_INSTALL_TYPE
+
 
 ; Define custom messages
 !define MINICONDA_DIALOG_TITLE "Miniconda Installation"
 !define MINICONDA_DIALOG_TEXT "Do you already have Miniconda or Anaconda installed on your system?$\n$\nIf you're not sure, choose No and we'll install it for you."
+
+; Custom function to set up directory page
+Function DirectoryPagePre
+    ; Ask if Miniconda is already installed
+    MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "${MINICONDA_DIALOG_TEXT}" /SD IDNO IDYES +3 IDNO +4
+    
+    ; ExistingInstall (IDYES)
+    StrCpy $CONDA_INSTALL_TYPE "existing"
+    ${If} ${FileExists} "$PROFILE\miniconda3"
+        StrCpy $INSTDIR "$PROFILE\miniconda3"
+    ${EndIf}
+    Goto done
+    
+    ; NewInstall (IDNO)
+    StrCpy $CONDA_INSTALL_TYPE "new"
+    StrCpy $INSTDIR "$PROFILE\miniconda3"
+    
+    done:
+FunctionEnd
 
 ; Section to handle Miniconda installation
 Section "Miniconda Installation"
     SetOutPath "$TEMP"
     File /oname=MinicondaInstaller.exe "Miniconda3-latest-Windows-x86_64.exe"
 
-    ; Modern styled message box with clear instructions
-    MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "${MINICONDA_DIALOG_TEXT}" IDYES YesMiniconda IDNO NoMiniconda
+    StrCpy $condaPath $INSTDIR
 
-    YesMiniconda:
-        ; Create a dialog to let the user select the existing installation folder
-        nsDialogs::Create
-        nsDialogs::SelectFolderDialog "Select the folder where Miniconda/Anaconda is installed$\n$\nTypically C:\Users\<username>\miniconda3" "" $condaPath
-        Pop $condaPath
-        ${If} $condaPath == ""
-            ; Abort installation if no directory is selected
-            MessageBox MB_ICONEXCLAMATION "No directory selected. Installation will not continue."
-            Quit
-        ${EndIf}
-        
-        ; Go to the section 
-        Goto PathFound
-
-    NoMiniconda:
-        ; Create a dialog to let the user select the existing installation folder
-        nsDialogs::Create
-        nsDialogs::SelectFolderDialog "Select installational directory" "$PROFILE" $condaPath
-        Pop $condaPath
-        StrCpy $condaPath "$condaPath\Miniconda3"
-
-        DetailPrint "Installing Miniconda. It may take some time...,"
-
-        ; Perform a silent installation of Miniconda
-        ExecWait '"$TEMP\MinicondaInstaller.exe" /InstallationType=JustMe /AddToPath=1 /RegisterPython=0 /S /D=$condaPath'
+    ${If} $CONDA_INSTALL_TYPE == "new"
+        DetailPrint "Installing Miniconda. It may take some time..."
+        ExecWait '"$TEMP\MinicondaInstaller.exe" /InstallationType=JustMe /AddToPath=1 /RegisterPython=0 /D=$condaPath'
         ${If} ${Errors}
-            MessageBox MB_ICONSTOP "Error: Failed to install Miniconda. Please check the installer or your system permissions."
+            MessageBox MB_ICONSTOP|MB_TOPMOST "Failed to install Miniconda.$\n$\nPossible reasons:$\n- Insufficient system permissions$\n- Corrupted installer$\n- Antivirus blocking installation$\n$\nPlease try running the installer as administrator or contact support."
             Quit
         ${EndIf}
-        ; Go to the section 
-        Goto PathFound
-        
-    PathFound:
-        ; Print the detected or installed Miniconda path
-        DetailPrint "Miniconda Found at: $condaPath"
+    ${EndIf}
+
+    DetailPrint "Miniconda Found at: $condaPath"
 SectionEnd
 
 ; Section to install Osdag using the Miniconda environment
@@ -93,13 +98,27 @@ Section "install osdag"
         ; Assign a name for the Conda environment
         StrCpy $env_name "osdag_env"   
 
-        ; Create Osdag env and install Osdag in the created Conda environment
-        DetailPrint "Installing osdag..."
-        nsExec::ExecToLog 'cmd.exe /C ""$1" create -n $env_name osdag::osdag -c conda-forge -y"'
-
+        ; Create Osdag env
+        DetailPrint "Creating Osdag environment..."
+        nsExec::ExecToStack /TIMEOUT=3600000 'cmd.exe /C ""$1" create -n $env_name -y >nul 2>&1"'
+        Pop $R0
+        ${If} $R0 != "0"
+            MessageBox MB_ICONSTOP|MB_TOPMOST "Failed to create Conda environment.$\n$\nPlease try again or contact support."
+            Quit
+        ${EndIf}
+        DetailPrint "Osdag environment created successfully"
+        
+        ; Install Osdag in the created Conda environment
+        DetailPrint "Installing Osdag (this may take several minutes)..."
+        nsExec::ExecToStack /TIMEOUT=3600000 'cmd.exe /C ""$1" install -n $env_name osdag::osdag -c conda-forge -y >nul 2>&1"'
+        Pop $R0
+        ${If} $R0 != "0"
+            MessageBox MB_ICONSTOP|MB_TOPMOST "Failed to install Osdag.$\n$\nPlease check your internet connection and try again."
+            Quit
+        ${EndIf}
+        DetailPrint "Osdag installed successfully"
     ${Else}
-        ; Display an error message if Conda executable is not found
-        MessageBox MB_ICONSTOP "Error: Conda executable not found at $1. Please check the path."
+        MessageBox MB_ICONSTOP|MB_TOPMOST "Error: Conda executable not found at $1.$\n$\nPlease ensure Miniconda is properly installed."
         Quit
     ${EndIf}
 
@@ -113,61 +132,31 @@ Section "LaTeX Installation"
     SetOutPath $TEMP
     File /oname=MiKTeX.exe "basic-miktex-24.1-x64.exe"
 
-    ; Define a temporary file to store the output
-    SetOutPath $TEMP
-    FileOpen $1 "$TEMP\pdflatex_check.txt" w
-    FileClose $1
-
-    ; Run the "where pdflatex" command and redirect output to the file
-    ExecWait 'cmd.exe /C "where pdflatex > $TEMP\pdflatex_check.txt"'
- 
-    ; Read the output from the file
-    FileOpen $1 "$TEMP\pdflatex_check.txt" r
-    FileRead $1 $miktexPath
-    FileClose $1
-    
-
-    ${If} $miktexPath == ""
-        Goto install
-
+    ; Check for existing MiKTeX installation by checking default path and pdflatex command
+    DetailPrint "Checking for existing MiKTeX installation..."
+    ${If} ${FileExists} "$PROFILE\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe"
+        DetailPrint "MiKTeX executable found at: $PROFILE\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe"
+        StrCpy $miktexPath "$PROFILE\AppData\Local\Programs\MiKTeX"
     ${Else}
-        ; Retrieve Latex installation directory
-        StrLen $R0 $miktexPath  ; Get the length of the full string
-
-        ; Find the position of "\condabin\conda.bat"
-        StrCpy $R1 "\miktex\bin\x64\pdflatex.exe"
-        StrLen $R2 $R1  ; Length of "\condabin\conda.bat"
-
-        ; Subtract 1 to avoid including the trailing backslash before condabin
-        IntOp $R3 $R0 - $R2
-        IntOp $R3 $R3 - 2  ; Subtract 1 more to exclude the last backslash before condabin
-
-        ; Copy everything before "\condabin\conda.bat"
-        StrCpy $miktexPath $miktexPath $R3
-
-        DetailPrint "LaTeX found at: $miktexPath"
-        Goto End
-    ${EndIf}
-
-    install:
-        MessageBox MB_ICONEXCLAMATION "LaTex not found (pdflatex is missing). Please install MikTeX before continuing."
-
-        ; Run the MiKTeX installer silently
-        DetailPrint "Installing MikTeX, please wait..."
-        MessageBox MB_ICONEXCLAMATION "Install for Current User. Do not change the default installation path for MikTeX."
-        ExecWait '"$TEMP\MiKTeX.exe"'
-        ${If} ${Errors}
-            MessageBox MB_ICONSTOP "Error: Failed to install Miniconda. Please check the installer or your system permissions."
-            Quit
+        ; Try to get path using where command without redirecting output
+        nsExec::ExecToStack 'cmd.exe /C "where pdflatex"'
+        Pop $R0  
+        Pop $R1  
+        ${If} $R1 != ""
+            DetailPrint "MiKTeX found executable at: $R1"
+            StrCpy $miktexPath $R1
+        ${Else}
+            DetailPrint "MiKTeX not found, starting installation..."
+            StrCpy $miktexPath "$PROFILE\AppData\Local\Programs\MiKTeX"
+            ExecWait '"$TEMP\MiKTeX.exe" /D=$miktexPath'
+            ${If} ${Errors}
+                MessageBox MB_ICONSTOP|MB_TOPMOST "Failed to install MiKTeX.$\n$\nPossible reasons:$\n- Insufficient system permissions$\n- Corrupted installer$\n- Antivirus blocking installation$\n$\nPlease try running the installer as administrator or contact support."
+                Quit
+            ${EndIf}
+            DetailPrint "MiKTeX installed successfully"
+            MessageBox MB_ICONINFORMATION|MB_TOPMOST "MiKTeX has been installed successfully.$\n$\nImportant:$\n- Please run MiKTeX Console to check for updates$\n- Updates are required for proper functioning of Osdag"
         ${EndIf}
-
-        ; Run the "where pdflatex" command and redirect output to the file
-        StrCpy $miktexPath "$PROFILE\AppData\Local\Programs\MiKTeX\"
-        DetailPrint "MikTeX Installated at $miktexPath"
-        MessageBox MB_ICONEXCLAMATION "Make sure to check updates for MikTeX before launching Osdag"
-
-        Goto End
-    End:
+    ${EndIf}
 SectionEnd
 
 ; Section to create shortcuts for Osdag
@@ -259,6 +248,6 @@ Section "Uninstall"
     # Remove registry keys
     DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osdag"
 
-    MessageBox MB_OK "Osdag Unistalled. You can remove MikTeX and Conda mannually" 
+    MessageBox MB_OK|MB_TOPMOST "Osdag Unistalled. You can remove MikTeX and Conda mannually" 
 
 SectionEnd
